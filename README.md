@@ -1,6 +1,5 @@
 ---
 title: JetBRAIN
-<<<<<<< HEAD
 emoji: 🧠
 colorFrom: blue
 colorTo: indigo
@@ -10,31 +9,22 @@ pinned: true
 license: mit
 ---
 
-# 🎯 JetBRAIN - 3D Simulation
+# 🎯 JetBRAIN — Corona Control Ultimate (Cloud Gaming)
 
-Eine Hyper-AAA 3D Simulation, die vollständig in der Cloud (Huggingface Spaces) gehostet wird.
+Eine Hyper-AAA 3D Polizei-Simulation, die vollständig in der Cloud (Huggingface Spaces) gehostet wird.
+**ZERO lokale GPU/CPU/Festplatte** — Alles rendert auf dem Server via WebRTC.
 
 ## ☁️ Zero-Footprint Architektur
-- **Backend:** Node.js / Socket.io
-- **Frontend:** React 19 / Three.js
-- **Deployment:** Docker
-- **Hosting:** Huggingface Spaces
+- **Backend:** Node.js + Puppeteer (Cloud-Rendering)
+- **Frontend:** React 19 / Three.js (WebGPU-Fokus)
+- **Streaming:** WebRTC @ 1080p / 60 FPS
+- **Deployment:** Docker auf Huggingface Spaces
+- **Profil:** AAA (1920x1080, JPEG 85%, 60 FPS)
 
 ## 🛠️ Entwicklung & CI/CD
-Dieses Repository wird automatisch via GitHub Actions synchronisiert.
 - **GitHub:** [https://github.com/strazzusochr/JetBRAIN](https://github.com/strazzusochr/JetBRAIN)
 - **GitLab:** [https://gitlab.com/strazzusochr/jetbrain](https://gitlab.com/strazzusochr/jetbrain)
 
 ---
 > [!NOTE]
-> Dieses Projekt ist Teil einer Strategie zur Vermeidung lokaler Hardware-Last (Hardware-Schutz bei > 90°C).
-=======
-emoji: 👁
-colorFrom: purple
-colorTo: green
-sdk: docker
-pinned: false
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> bc4e54dac7bd5c5b5bb5cc91af7e6a75976518ee
+> Dieses Projekt nutzt Cloud-Rendering (Puppeteer/Chromium) zum Schutz lokaler Hardware (Zero-Footprint-Prinzip).
