@@ -943,8 +943,13 @@ async function startCloudRenderer() {
 
   const rendererInfo = await bootstrapRendererTransport(settings);
   console.log(`✅ Game loaded! Starting WebRTC stream at ${settings.fps} FPS target (${rendererInfo.source})`);
-  io.emit('profile-changed', settings);
+  
+  // 📸 Robust Fallback: Start screenshot capture loop for Socket.IO/MJPEG streaming
+  captureGeneration += 1;
   isStreaming = true;
+  captureLoop(captureGeneration);
+  
+  io.emit('profile-changed', settings);
 }
 
 async function switchProfile(newProfile) {
@@ -1187,6 +1192,38 @@ function getClientHTML() {
 
     let renderWidth = 1920;
     let renderHeight = 1080;
+
+    // 🎞️ Hybrid Transport Fallback: Socket.IO Binary Stream
+    const fallbackCanvas = document.createElement('canvas');
+    fallbackCanvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;display:none;z-index:500;background:#000;';
+    document.body.insertBefore(fallbackCanvas, video);
+    const ctx = fallbackCanvas.getContext('2d');
+
+    socket.on('frame', (data) => {
+      // Use fallback if WebRTC video is not ready or stalled
+      if (video.readyState < 2) {
+        if (fallbackCanvas.style.display === 'none') {
+          fallbackCanvas.style.display = 'block';
+          console.log('🎞️ WebRTC stalled. Loading Socket.IO frame stream...');
+        }
+        const blob = new Blob([data], { type: 'image/jpeg' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          fallbackCanvas.width = img.width;
+          fallbackCanvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+          frameCount++; // Sync with FPS counter
+        };
+        img.src = url;
+      } else {
+        if (fallbackCanvas.style.display === 'block') {
+          fallbackCanvas.style.display = 'none';
+          console.log('⚡ WebRTC active. Disabling fallback.');
+        }
+      }
+    });
     let activeProfile = '${currentProfileKey}';
     let switching = false;
     let rendererId = null;
