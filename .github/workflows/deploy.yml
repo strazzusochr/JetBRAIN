@@ -1,0 +1,36 @@
+name: ☁️ Cloud Deploy (Zero-Footprint)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-huggingface:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: 🐳 Push to Huggingface Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git remote add huggingface https://Wrzzzrzr:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Wrzzzrzr/JetBRAIN
+          git push --force huggingface main
+
+  mirror-gitlab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🦊 Mirror to GitLab
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          git remote add gitlab https://strazzusochr:${{ secrets.GITLAB_TOKEN }}@gitlab.com/strazzusochr/jetbrain.git
+          git push --force gitlab main
