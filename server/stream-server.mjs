@@ -906,7 +906,7 @@ async function startCloudRenderer() {
   page.on('pageerror', err => console.error('💀 [PAGE CRASH]', err));
 
   console.log('🌍 Loading game engine...');
-  await page.goto(`http://localhost:${internalPort}`, {
+  await page.goto(`http://localhost:${internalPort}/?renderer=true`, {
     waitUntil: ['networkidle2', 'load'],
     timeout: 120000
   });

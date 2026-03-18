@@ -1374,7 +1374,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     npcs: [],
     firedEventKeys: [],
     roleTrendHistory: persistedRoleTrendHistory,
-    isZeroFootprint: true, // DEFAULT: Cloud-Only (Hardware Protection)
+    isZeroFootprint: typeof window !== 'undefined' && !window.location.search.includes('renderer=true'), // DEFAULT: Cloud-Only (Hardware Protection)
     isVoiceActive: false,
     remotePlayers: {},
     interactionState: {
