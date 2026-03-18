@@ -923,10 +923,15 @@ async function startCloudRenderer() {
   page.on('pageerror', err => console.error('💀 [PAGE CRASH]', err));
 
   console.log('🌍 Loading game engine...');
-  await page.goto(`http://127.0.0.1:${internalPort}/?renderer=true`, {
-    waitUntil: ['networkidle2', 'load'],
-    timeout: 120000
-  });
+  try {
+    await page.goto(`http://127.0.0.1:${internalPort}/?renderer=true`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+    console.log('🌍 Page DOM loaded.');
+  } catch (err) {
+    console.log('⚠️ Page load took too long, but proceeding as renderer should be active:', err.message);
+  }
 
   // Wait for Three.js canvas to appear
   console.log('⏳ Waiting for canvas selector...');
