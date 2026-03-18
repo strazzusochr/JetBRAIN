@@ -18,7 +18,12 @@ declare global {
     }
 }
 
-const socket = io(window.location.origin, { autoConnect: false });
+const isRenderer = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('renderer') === 'true';
+const socketUrl = isRenderer 
+    ? (window.location.protocol + '//' + window.location.hostname + ':7860') 
+    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+
+const socket = io(socketUrl, { autoConnect: false });
 (window as any).socket = socket;
 
 export interface NPCData {
