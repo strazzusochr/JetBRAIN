@@ -73,17 +73,17 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // ✅ Sonnenaufgang-Shader aktiviert (Sky component)
   // ✅ Erste NPCs spawnen (Frühaufsteher, Jogger)
   {
-    time: '06:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 250, position: [-25, 0, 25], radius: 30,
-    description: 'STRESS-TEST: Großgruppe West (250 NPCs)', mood: NPCMood.PEACEFUL, behavior: NPCBehavior.WANDER,
+    time: '06:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 125, position: [-25, 0, 25], radius: 30,
+    description: 'STRESS-TEST: Großgruppe West (125 NPCs)', mood: NPCMood.PEACEFUL, behavior: NPCBehavior.WANDER,
     phaseLabel: '🌅 Stress-Test Phase — Massive Spawn'
   },
   {
-    time: '06:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 250, position: [25, 0, 25], radius: 30,
-    description: 'STRESS-TEST: Großgruppe Ost (250 NPCs)', mood: NPCMood.PEACEFUL, behavior: NPCBehavior.WANDER
+    time: '06:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 125, position: [25, 0, 25], radius: 30,
+    description: 'STRESS-TEST: Großgruppe Ost (125 NPCs)', mood: NPCMood.PEACEFUL, behavior: NPCBehavior.WANDER
   },
   // 5 Polizisten spawnen (Patrouille-Route)
   {
-    time: '06:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 5, position: [35, 0, 40], radius: 8,
+    time: '06:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 2, position: [35, 0, 40], radius: 8,
     description: 'Patrouille Eingang Ost — passive Überwachung', mood: NPCMood.PEACEFUL, behavior: NPCBehavior.PATROL
   },
   // GESAMT: 25 NPCs
@@ -91,7 +91,7 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 08:00 — DEMO-VORBEREITUNG: "Erste Demonstranten treffen ein"
   // Organisatoren bauen Bühne auf, Sound-System testet
   {
-    time: '08:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 8, position: [0, 0, 10], radius: 6,
+    time: '08:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 4, position: [0, 0, 10], radius: 6,
     description: '08:00 — Erste Demonstranten am Stephansplatz. Bühnenaufbau beginnt.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.GATHER,
     phaseLabel: '📢 Demo-Vorbereitung — Erste Demonstranten'
@@ -109,26 +109,26 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 08:45 — Schilder werden verteilt: "FREIHEIT STATT ANGST"
   {
-    time: '08:45', action: 'SPAWN', npcType: NPCType.ORGANIZER, count: 2, position: [0, 0, 8], radius: 3,
+    time: '08:45', action: 'SPAWN', npcType: NPCType.ORGANIZER, count: 1, position: [0, 0, 8], radius: 3,
     description: '08:45 — Organisatoren verteilen Schilder "FREIHEIT STATT ANGST"',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.HOLD_SIGN,
     phaseLabel: '📢 Schilder werden verteilt'
   },
   // Die existierenden 8 Demonstranten erhalten nun auch Schilder
   {
-    time: '08:45', action: 'BEHAVIOR_CHANGE', npcType: NPCType.DEMONSTRATOR, count: 8, position: [0, 0, 10], radius: 0,
+    time: '08:45', action: 'BEHAVIOR_CHANGE', npcType: NPCType.DEMONSTRATOR, count: 4, position: [0, 0, 10], radius: 0,
     description: 'Schilder werden an Anwesende verteilt',
     behavior: NPCBehavior.HOLD_SIGN
   },
 
   // 09:00 — 17 weitere Demonstranten (10 + 7), friedlich versammelt
   {
-    time: '09:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 10, position: [-20, 0, 15], radius: 8,
+    time: '09:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 5, position: [-20, 0, 15], radius: 8,
     description: '09:00 — Linker Flügel versammelt. Schilder hochhalten. Fahnen schwenken.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.HOLD_SIGN
   },
   {
-    time: '09:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 7, position: [20, 0, 15], radius: 8,
+    time: '09:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 3, position: [20, 0, 15], radius: 8,
     description: '09:00 — Rechter Flügel. Trinken Kaffee, essen Snacks. Mood: PEACEFUL.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.HOLD_SIGN
   },
@@ -148,21 +148,21 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 10:00 — MASSEN-ZUSTROM
   {
-    time: '10:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 10, position: [0, 0, 25], radius: 10,
-    description: '10:00 — 10 weitere Demonstranten, enger Radius. Platz wird voll.',
+    time: '10:00', action: 'SPAWN', npcType: NPCType.DEMONSTRATOR, count: 5, position: [0, 0, 25], radius: 10,
+    description: '10:00 — 5 weitere Demonstranten, enger Radius. Platz wird voll.',
     mood: NPCMood.TENSE, behavior: NPCBehavior.GATHER,
     phaseLabel: '📢 Massen-Zustrom — Crowd wächst'
   },
   // 7 Polizisten bilden Polizeilinie bei [0,0,38]
   {
-    time: '10:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 7, position: [0, 0, 38], radius: 15,
+    time: '10:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 3, position: [0, 0, 38], radius: 15,
     description: '10:00 — Polizeikette Süd. Formation: Linie.',
     mood: NPCMood.TENSE, behavior: NPCBehavior.SHIELD_WALL
   },
   // 5 Zivilisten despawnen (nervös, verlassen Gegend)
   {
-    time: '10:00', action: 'DESPAWN', npcType: NPCType.CIVILIAN, count: 5,
-    description: '10:00 — 5 Zivilisten fliehen nervös'
+    time: '10:00', action: 'DESPAWN', npcType: NPCType.CIVILIAN, count: 2,
+    description: '10:00 — 2 Zivilisten fliehen nervös'
   },
   // 10:20 — Erste Sprechchöre: "Freiheit! Freiheit! Freiheit!"
   {
@@ -174,14 +174,14 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 11:00 — HAUPTREDNER: "Dr. Michael Hoffmann" betritt Bühne
   {
-    time: '11:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 3, position: [-35, 0, 38], radius: 5,
-    description: '11:00 — 3 Pol Verstärkung Gasse West',
+    time: '11:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 1, position: [-35, 0, 38], radius: 5,
+    description: '11:00 — 1 Pol Verstärkung Gasse West',
     mood: NPCMood.TENSE, behavior: NPCBehavior.SHIELD_WALL,
     phaseLabel: '🎤 Hauptredner auf der Bühne'
   },
   {
-    time: '11:00', action: 'DESPAWN', npcType: NPCType.CIVILIAN, count: 5,
-    description: '11:00 — Weitere 5 Zivilisten fliehen'
+    time: '11:00', action: 'DESPAWN', npcType: NPCType.CIVILIAN, count: 2,
+    description: '11:00 — Weitere 2 Zivilisten fliehen'
   },
   {
     time: '11:00', action: 'SPAWN', npcType: NPCType.ORGANIZER, count: 1, position: [0, 0, 8], radius: 1,
@@ -230,8 +230,8 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // "Hiermit wird diese Demonstration für beendet erklärt!"
   // "Sie haben 15 Minuten, um den Platz zu verlassen!"
   {
-    time: '12:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 7, position: [35, 0, 38], radius: 5,
-    description: '12:00 — 7 Pol Verstärkung Gasse Ost. Gesamt 22 Cops.',
+    time: '12:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 3, position: [35, 0, 38], radius: 5,
+    description: '12:00 — 3 Pol Verstärkung Gasse Ost. Gesamt 11 Cops.',
     mood: NPCMood.TENSE, behavior: NPCBehavior.SHIELD_WALL
   },
   {
@@ -252,8 +252,8 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 12:15 — ERSTE GEWALT: "Frontkollision"
   // Demonstranten erreichen Polizei-Linie. Schubsereien → Massenschlägerei
   {
-    time: '12:15', action: 'SPAWN', npcType: NPCType.MEDIC, count: 3, position: [38, 0, 0], radius: 5,
-    description: '12:15 — 3 Sanitäter Rand Ost. Erste Schläge, Nahkampf beginnt.',
+    time: '12:15', action: 'SPAWN', npcType: NPCType.MEDIC, count: 1, position: [38, 0, 0], radius: 5,
+    description: '12:15 — 1 Sanitäter Rand Ost. Erste Schläge, Nahkampf beginnt.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.CLEANUP,
     phaseLabel: '💥 Erste Gewaltausbrüche — Frontkollision'
   },
@@ -269,14 +269,14 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 12:30 — HUNDERTSCHAFT RÜCKT AN
   // 20 Riot-Polizisten, volle Riot-Gear, Schild-Beats: BOOM BOOM BOOM
   {
-    time: '12:30', action: 'SPAWN', npcType: NPCType.RIOT_POLICE, count: 20, position: [0, 0, 65], radius: 12,
-    description: '12:30 — 20 Riot-Police Formation Süd-Straße. Schild-Schlagen im Rhythmus.',
+    time: '12:30', action: 'SPAWN', npcType: NPCType.RIOT_POLICE, count: 10, position: [0, 0, 65], radius: 12,
+    description: '12:30 — 10 Riot-Police Formation Süd-Straße. Schild-Schlagen im Rhythmus.',
     mood: NPCMood.TENSE, behavior: NPCBehavior.SHIELD_WALL,
     phaseLabel: '🛡️ Hundertschaft rückt an — BOOM BOOM BOOM'
   },
   {
-    time: '12:30', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 10,
-    description: '12:30 — 10 Demonstranten fliehen Richtung Nord'
+    time: '12:30', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 5,
+    description: '12:30 — 5 Demonstranten fliehen Richtung Nord'
   },
   // GESAMT: 70 NPCs, Eskalation: 70%
 
@@ -287,16 +287,16 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 13:00 — WASSERWERFER-EINSATZ: "Hydro Cannon Assault"
   // Wasserstrahl 60m Reichweite, NPCs 5m Knockback, Nass-Shader
   {
-    time: '13:00', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 10,
-    description: '13:00 — 10 Demonstranten durch Wasserwerfer zerstreut',
+    time: '13:00', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 5,
+    description: '13:00 — 5 Demonstranten durch Wasserwerfer zerstreut',
     phaseLabel: '💧 Wasserwerfer-Einsatz — Hydro Cannon'
   },
 
   // 13:30 — TRÄNENGAS: "Chemical Dispersion"
   // 10 Granaten, weiße Rauch-Wolken, Husten, Desorientierung
   {
-    time: '13:30', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 8,
-    description: '13:30 — 8 Demonstranten durch Tränengas vertrieben. Husten, Panik.',
+    time: '13:30', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 4,
+    description: '13:30 — 4 Demonstranten durch Tränengas vertrieben. Husten, Panik.',
     phaseLabel: '☁️ Tränengas-Angriff — Chemical Dispersion'
   },
   // Gas-Effekt: Sicht -80%, Bewegung -40%, Schaden 5 HP/Sek
@@ -304,13 +304,13 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 14:00 — POLIZEI-VORSTOSS: "Aggressive Clearing"
   // Formation Keil (Phalanx), Schlagstöcke schwingend, brutal
   {
-    time: '14:00', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 12,
-    description: '14:00 — 12 Demonstranten festgenommen. Keil-Formation. Brutale Räumung.',
+    time: '14:00', action: 'DESPAWN', npcType: NPCType.DEMONSTRATOR, count: 6,
+    description: '14:00 — 6 Demonstranten festgenommen. Keil-Formation. Brutale Räumung.',
     phaseLabel: '⚔️ Polizei-Vorstoß — Aggressive Clearing'
   },
   {
-    time: '14:00', action: 'DESPAWN', npcType: NPCType.POLICE, count: 5,
-    description: '14:00 — 5 verletzte Polizisten despawnen'
+    time: '14:00', action: 'DESPAWN', npcType: NPCType.POLICE, count: 2,
+    description: '14:00 — 2 verletzte Polizisten despawnen'
   },
   // Blut-Decals, Bewusstlose, Schreie
   // GESAMT: 35 NPCs, Eskalation: 40%
@@ -326,18 +326,18 @@ export const EVENT_TIMELINE: GameEvent[] = [
     phaseLabel: '🧹 Ruhe vor dem Sturm — False Peace'
   },
   {
-    time: '15:00', action: 'DESPAWN', npcType: NPCType.RIOT_POLICE, count: 10,
-    description: '15:00 — 10 Riot-Polizei abgezogen'
+    time: '15:00', action: 'DESPAWN', npcType: NPCType.RIOT_POLICE, count: 5,
+    description: '15:00 — 5 Riot-Polizei abgezogen'
   },
   // Aufräum-Teams: Feuerwehr und Sanitäter
   {
-    time: '15:00', action: 'SPAWN', npcType: NPCType.FIREFIGHTER, count: 3, position: [-30, 0, 10], radius: 8,
-    description: '15:00 — 3 Feuerwehr aufräumen. Zerbrochene Flaschen, Blut-Pfützen.',
+    time: '15:00', action: 'SPAWN', npcType: NPCType.FIREFIGHTER, count: 1, position: [-30, 0, 10], radius: 8,
+    description: '15:00 — 1 Feuerwehr aufräumen. Zerbrochene Flaschen, Blut-Pfützen.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.CLEANUP
   },
   {
-    time: '15:00', action: 'SPAWN', npcType: NPCType.MEDIC, count: 2, position: [-38, 0, 0], radius: 5,
-    description: '15:00 — 2 Sanitäter versorgen Verletzte.',
+    time: '15:00', action: 'SPAWN', npcType: NPCType.MEDIC, count: 1, position: [-38, 0, 0], radius: 5,
+    description: '15:00 — 1 Sanitäter versorgen Verletzte.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.CLEANUP
   },
   // GESAMT: 15 NPCs, Eskalation: 30%
@@ -345,8 +345,8 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 16:00 — NACHRICHTENZYKLUS: "Media Coverage"
   // TV-Screens, Kamera-Teams, Social Media: "#WienRiot" trending
   {
-    time: '16:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 8, position: [0, 0, 30], radius: 25,
-    description: '16:00 — 8 Schaulustige Parkrand. Kamera-Teams filmen.',
+    time: '16:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 4, position: [0, 0, 30], radius: 25,
+    description: '16:00 — 4 Schaulustige Parkrand. Kamera-Teams filmen.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.WANDER,
     phaseLabel: '📺 Nachrichtenzyklus — #WienRiot trending'
   },
@@ -354,7 +354,7 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 17:00–17:30 — ABZUG & SPERRSTUNDE
   {
-    time: '17:00', action: 'DESPAWN', npcType: NPCType.FIREFIGHTER, count: 3,
+    time: '17:00', action: 'DESPAWN', npcType: NPCType.FIREFIGHTER, count: 1,
     description: '17:00 — Feuerwehr abziehen'
   },
   {
@@ -376,29 +376,29 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 30 schwarz gekleidete Extremisten in 5 Gruppen
   // Sturmhauben, Masken, Eisenstangen, Baseballschläger, Molotows
   {
-    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 6, position: [-70, 0, -70], radius: 8,
-    description: '18:00 — 6 Extremisten Gasse Nord-West. Komplett schwarz, Sturmhauben.',
+    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 3, position: [-70, 0, -70], radius: 8,
+    description: '18:00 — 3 Extremisten Gasse Nord-West. Komplett schwarz, Sturmhauben.',
     mood: NPCMood.ANGRY, behavior: NPCBehavior.FOLLOW,
     phaseLabel: '🌑 Dämmerung — Extremisten sammeln sich'
   },
   {
-    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 6, position: [70, 0, -70], radius: 8,
-    description: '18:00 — 6 Extremisten Gasse Nord-Ost. Eisenstangen, Schläger.',
+    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 3, position: [70, 0, -70], radius: 8,
+    description: '18:00 — 3 Extremisten Gasse Nord-Ost. Eisenstangen, Schläger.',
     mood: NPCMood.ANGRY, behavior: NPCBehavior.FOLLOW
   },
   {
-    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 6, position: [-70, 0, 70], radius: 8,
-    description: '18:00 — 6 Extremisten Gasse Süd-West. Molotow-Cocktails.',
+    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 3, position: [-70, 0, 70], radius: 8,
+    description: '18:00 — 3 Extremisten Gasse Süd-West. Molotow-Cocktails.',
     mood: NPCMood.ANGRY, behavior: NPCBehavior.FOLLOW
   },
   {
-    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 6, position: [70, 0, 70], radius: 8,
-    description: '18:00 — 6 Extremisten Gasse Süd-Ost. Improvisierte Schilde.',
+    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 3, position: [70, 0, 70], radius: 8,
+    description: '18:00 — 3 Extremisten Gasse Süd-Ost. Improvisierte Schilde.',
     mood: NPCMood.ANGRY, behavior: NPCBehavior.FOLLOW
   },
   {
-    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 6, position: [0, 0, 100], radius: 10,
-    description: '18:00 — 6 Extremisten Hauptstraße Süd. Vereinzelt Pistolen.',
+    time: '18:00', action: 'SPAWN', npcType: NPCType.EXTREMIST, count: 3, position: [0, 0, 100], radius: 10,
+    description: '18:00 — 3 Extremisten Hauptstraße Süd. Vereinzelt Pistolen.',
     mood: NPCMood.ANGRY, behavior: NPCBehavior.FOLLOW
   },
   // 18:45 — Mob formiert sich, Anführer gibt Befehle
@@ -420,20 +420,20 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 19:00 — MOB-ANGRIFF: "Black Bloc Assault"
   // Skandieren: "ACAB! ACAB! ACAB!", Trommeln auf Schilder
   {
-    time: '19:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 5, position: [0, 0, 42], radius: 8,
-    description: '19:00 — 5 Pol Verstärkung Parkrand',
+    time: '19:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 2, position: [0, 0, 42], radius: 8,
+    description: '19:00 — 2 Pol Verstärkung Parkrand',
     mood: NPCMood.TENSE, behavior: NPCBehavior.SHIELD_WALL,
     phaseLabel: '💀 Mob-Angriff — Black Bloc Assault'
   },
-  // 30 Extremisten marschieren zu [0,0,12] — FRONTAL-KOLLISION
+  // 15 Extremisten marschieren zu [0,0,12] — FRONTAL-KOLLISION
   {
-    time: '19:00', action: 'MOVE', npcType: NPCType.EXTREMIST, count: 30, position: [0, 0, 12],
-    description: '19:00 — 30 Extremisten marschieren zu Bühne. "ACAB! ACAB!"'
+    time: '19:00', action: 'MOVE', npcType: NPCType.EXTREMIST, count: 15, position: [0, 0, 12],
+    description: '19:00 — 15 Extremisten marschieren zu Bühne. "ACAB! ACAB!"'
   },
   // 19:03 — Nahkampf-Chaos: Eisenstangen vs Schlagstöcke, Molotows, Schüsse
   {
     time: '19:03', action: 'MOOD_CHANGE', npcType: NPCType.EXTREMIST, count: -1,
-    description: '19:03 — FRONTAL-KOLLISION! 30 vs 12. Brutale Gewalt. MAXIMUM CHAOS.',
+    description: '19:03 — FRONTAL-KOLLISION! 15 vs 6. Brutale Gewalt. MAXIMUM CHAOS.',
     targetMood: NPCMood.RIOTING, targetBehavior: NPCBehavior.COMBAT
   },
   // GESAMT: 42 NPCs, Eskalation: 80%
@@ -445,21 +445,21 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 19:30 — BENGALO-INFERNO: "Pyro Show from Hell"
   // 20 Bengalos ROT, Rauch, Polizisten in Flammen
   {
-    time: '19:30', action: 'DESPAWN', npcType: NPCType.POLICE, count: 5,
-    description: '19:30 — 5 verletzte Polizisten fallen aus',
+    time: '19:30', action: 'DESPAWN', npcType: NPCType.POLICE, count: 2,
+    description: '19:30 — 2 verletzte Polizisten fallen aus',
     phaseLabel: '🔥 Bengalo-Inferno — Pyro Show from Hell'
   },
   {
-    time: '19:30', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 2,
-    description: '19:30 — 2 Extremisten fallen im Kampf'
+    time: '19:30', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 1,
+    description: '19:30 — 1 Extremist fällt im Kampf'
   },
   // GESAMT: 35 NPCs, Eskalation: 85%
 
   // 20:00 — AUTO-BRÄNDE & BARRIKADEN: "Urban Warfare Setup"
   // Umgestürzte Autos, Müll-Container, Pflastersteine
   {
-    time: '20:00', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 3,
-    description: '20:00 — 3 weitere Extremisten fallen. Barrikaden werden gebaut.',
+    time: '20:00', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 1,
+    description: '20:00 — 1 weiterer Extremist fällt. Barrikaden werden gebaut.',
     phaseLabel: '🔥 Barrikaden & Brände — Urban Warfare'
   },
   // GESAMT: 32 NPCs, Eskalation: 90%
@@ -467,8 +467,8 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 20:30 — SEK ANKUNFT: "Special Forces Arrival"
   // Hubschrauber-Sound, 25 SEK: Sturmgewehre (Steyr AUG), Scharfschützen
   {
-    time: '20:30', action: 'SPAWN', npcType: NPCType.SEK, count: 25, position: [0, 0, 85], radius: 15,
-    description: '20:30 — 25 SEK Anfahrt. Sturmgewehre, Nachtsicht. Scharfschützen-Laser.',
+    time: '20:30', action: 'SPAWN', npcType: NPCType.SEK, count: 12, position: [0, 0, 85], radius: 15,
+    description: '20:30 — 12 SEK Anfahrt. Sturmgewehre, Nachtsicht. Scharfschützen-Laser.',
     mood: NPCMood.TENSE, behavior: NPCBehavior.SURROUND,
     phaseLabel: '🎯 SEK-Ankunft — Special Forces'
   },
@@ -481,14 +481,14 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 21:00 — HÖHEPUNKT: "Peak Chaos"
   // Schusswechsel: Extremist feuert Pistole, SEK eröffnet Feuer
   {
-    time: '21:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 5, position: [30, 0, 30], radius: 10,
-    description: '21:00 — 5 Pol Reserve Park-Ost',
+    time: '21:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 2, position: [30, 0, 30], radius: 10,
+    description: '21:00 — 2 Pol Reserve Park-Ost',
     mood: NPCMood.TENSE, behavior: NPCBehavior.SHIELD_WALL,
     phaseLabel: '💀 TOTALE ESKALATION — Peak Chaos'
   },
   {
-    time: '21:00', action: 'SPAWN', npcType: NPCType.MEDIC, count: 3, position: [55, 0, 55], radius: 8,
-    description: '21:00 — 3 Sanitäter Triage Südost',
+    time: '21:00', action: 'SPAWN', npcType: NPCType.MEDIC, count: 1, position: [55, 0, 55], radius: 8,
+    description: '21:00 — 1 Sanitäter Triage Südost',
     mood: NPCMood.PANICKED, behavior: NPCBehavior.CLEANUP
   },
   // 21:00:30 — SEK ERÖFFNET FEUER: Sturmgewehr-Salven
@@ -503,13 +503,13 @@ export const EVENT_TIMELINE: GameEvent[] = [
   // 21:30 — WENDE: "Retreat & Scatter"
   // Anführer: "Rückzug! In die Kanalisation!"
   {
-    time: '21:30', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 15,
-    description: '21:30 — 15 Extremisten fliehen. "Rückzug! In die Kanalisation!"',
+    time: '21:30', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 7,
+    description: '21:30 — 7 Extremisten fliehen. "Rückzug! In die Kanalisation!"',
     phaseLabel: '🏃 Mob-Rückzug — Retreat & Scatter'
   },
   {
-    time: '21:30', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 10,
-    description: '21:30 — 10 Extremisten verhaftet/bewusstlos'
+    time: '21:30', action: 'DESPAWN', npcType: NPCType.EXTREMIST, count: 5,
+    description: '21:30 — 5 Extremisten verhaftet/bewusstlos'
   },
   // GESAMT: 40 NPCs, Eskalation: 70% (sinkend)
 
@@ -519,22 +519,22 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 22:00 — "Crime Scene Processing"
   {
-    time: '22:00', action: 'DESPAWN', npcType: NPCType.SEK, count: 15,
-    description: '22:00 — 15 SEK Teilabzug',
+    time: '22:00', action: 'DESPAWN', npcType: NPCType.SEK, count: 7,
+    description: '22:00 — 7 SEK Teilabzug',
     phaseLabel: '🏥 Aftermath — Crime Scene Processing'
   },
   {
-    time: '22:00', action: 'DESPAWN', npcType: NPCType.POLICE, count: 10,
-    description: '22:00 — 10 Polizei Teilabzug'
+    time: '22:00', action: 'DESPAWN', npcType: NPCType.POLICE, count: 5,
+    description: '22:00 — 5 Polizei Teilabzug'
   },
   {
-    time: '22:00', action: 'SPAWN', npcType: NPCType.FIREFIGHTER, count: 4, position: [-20, 0, 35], radius: 15,
-    description: '22:00 — 4 Feuerwehr Löscharbeiten. Brände löschen.',
+    time: '22:00', action: 'SPAWN', npcType: NPCType.FIREFIGHTER, count: 2, position: [-20, 0, 35], radius: 15,
+    description: '22:00 — 2 Feuerwehr Löscharbeiten. Brände löschen.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.CLEANUP
   },
   {
-    time: '22:00', action: 'SPAWN', npcType: NPCType.MEDIC, count: 4, position: [20, 0, 20], radius: 10,
-    description: '22:00 — 4 Sanitäter Erstversorgung. Verletzte versorgen.',
+    time: '22:00', action: 'SPAWN', npcType: NPCType.MEDIC, count: 2, position: [20, 0, 20], radius: 10,
+    description: '22:00 — 2 Sanitäter Erstversorgung. Verletzte versorgen.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.CLEANUP
   },
   // GESAMT: 23 NPCs, Eskalation: 40%
@@ -554,8 +554,8 @@ export const EVENT_TIMELINE: GameEvent[] = [
     description: '23:00 — Alle SEK weg'
   },
   {
-    time: '23:00', action: 'DESPAWN', npcType: NPCType.POLICE, count: 8,
-    description: '23:00 — 8 Polizisten ab. Nur Checkpoint bleibt.'
+    time: '23:00', action: 'DESPAWN', npcType: NPCType.POLICE, count: 4,
+    description: '23:00 — 4 Polizisten ab. Nur Checkpoint bleibt.'
   },
   // GESAMT: ~12 NPCs (Polizei-Checkpoints), Eskalation: 20%
 
@@ -591,15 +591,15 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 00:30 — PLÜNDERER: Opportunisten nach dem Chaos
   {
-    time: '00:30', action: 'SPAWN', npcType: NPCType.RIOTER, count: 3, position: [0, 0, 20], radius: 15,
-    description: '00:30 — 3 Plünderer sichten Tatort. Opportunisten versuchen Beute zu sichern.',
+    time: '00:30', action: 'SPAWN', npcType: NPCType.RIOTER, count: 1, position: [0, 0, 20], radius: 15,
+    description: '00:30 — 1 Plünderer sichtet Tatort. Opportunisten versuchen Beute zu sichern.',
     mood: NPCMood.TENSE, behavior: NPCBehavior.WANDER,
     phaseLabel: '🔦 Nachtrunde — Plünderer & Patrouille'
   },
 
   // 02:00 — SPURENSICHERUNG: Ermittlerteam betritt Tatort
   {
-    time: '02:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 2, position: [-15, 0, 15], radius: 5,
+    time: '02:00', action: 'SPAWN', npcType: NPCType.CIVILIAN, count: 1, position: [-15, 0, 15], radius: 5,
     description: '02:00 — Ermittlerteam Spurensicherung. Fotodokumentation, Beweissicherung.',
     mood: NPCMood.TENSE, behavior: NPCBehavior.WANDER,
     phaseLabel: '🔎 Spurensicherung — Ermittlerteam aktiv'
@@ -607,14 +607,14 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 03:30 — FESTNAHMEN: Plünderer verhaftet
   {
-    time: '03:30', action: 'DESPAWN', npcType: NPCType.RIOTER, count: 3,
-    description: '03:30 — Plünderer verhaftet. Polizei meldet 3 Festnahmen nach Nacht-Razzia.',
+    time: '03:30', action: 'DESPAWN', npcType: NPCType.RIOTER, count: 1,
+    description: '03:30 — Plünderer verhaftet. Polizei meldet 1 Festnahme nach Nacht-Razzia.',
     phaseLabel: '🔒 Nacht-Festnahmen — Plünderer verhaftet'
   },
 
   // 05:00 — CHECKPOINT-WECHSEL: Frühschicht
   {
-    time: '05:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 3, position: [0, 0, 42], radius: 8,
+    time: '05:00', action: 'SPAWN', npcType: NPCType.POLICE, count: 1, position: [0, 0, 42], radius: 8,
     description: '05:00 — Frühschicht tritt an. Checkpoint-Wechsel. Lagebericht übergeben.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.PATROL,
     phaseLabel: '🌄 Checkpoint-Wechsel — Frühschicht'
@@ -622,8 +622,8 @@ export const EVENT_TIMELINE: GameEvent[] = [
 
   // 05:30 — PRESSE: Erste Journalisten kehren zurück
   {
-    time: '05:30', action: 'SPAWN', npcType: NPCType.JOURNALIST, count: 4, position: [15, 0, 30], radius: 10,
-    description: '05:30 — 4 Journalisten: Morgen-Lagebericht. Kamera-Teams dokumentieren Schäden.',
+    time: '05:30', action: 'SPAWN', npcType: NPCType.JOURNALIST, count: 2, position: [15, 0, 30], radius: 10,
+    description: '05:30 — 2 Journalisten: Morgen-Lagebericht. Kamera-Teams dokumentieren Schäden.',
     mood: NPCMood.PEACEFUL, behavior: NPCBehavior.WANDER,
     phaseLabel: '📰 Presse kehrt zurück — Morgen-Lagebericht'
   },
@@ -714,4 +714,4 @@ export function timeToMinutes(t: string): number {
   return h * 60 + m;
 }
 
-export const MAX_ACTIVE_NPCS = 500; // Hyper-AAA: 500+ NPCs für Stress-Test (Masterplan-Vorgabe)
+export const MAX_ACTIVE_NPCS = 250; // Halved for Zero-Footprint (250 NPCs)

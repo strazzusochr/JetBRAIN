@@ -1,13 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 
-// Separate telemetry store for data collection
-const telemetryStore = {
-    fps: 0,
-    polyCount: 0,
-    activeNPCs: 0,
-    lodDistribution: [0, 0, 0, 0, 0] as number[]
-};
 
 export const TelemetryHUD = () => {
     const [fps, setFps] = useState(0);
@@ -54,7 +47,7 @@ export const TelemetryHUD = () => {
 
         npcs.forEach(npc => {
             // Simplified LOD calculation without camera dependency
-            const lod = npc.lodLevel || 0;
+            const lod = (npc as any).lodLevel || 0;
             currentLodDist[lod]++;
             totalPolys += polyWeights[lod];
         });
@@ -88,7 +81,7 @@ export const TelemetryHUD = () => {
                 PHASE: {currentPhase}
             </div>
             <div>FPS: <span style={{ color: fps < 30 ? '#ff0000' : '#00ff00' }}>{fps}</span></div>
-            <div>NPCs: {activeNPCs} / 500</div>
+            <div>NPCs: {activeNPCs} / 250</div>
             <div>POLYGONS: {(polyCount / 1000000).toFixed(2)}M</div>
             <div style={{ marginTop: '5px', borderTop: '1px solid #333', paddingTop: '5px' }}>
                 LOD DISTRIBUTION:

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Html, Sky, KeyboardControls } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
@@ -12,12 +12,16 @@ import { WorldColliders } from '../3d/environment/WorldColliders';
 import { SpawnMarkers } from '../3d/environment/SpawnMarkers';
 import { VisualEffects } from '../3d/effects/VisualEffects';
 import { Player } from '../characters/Player';
+import { RemotePlayer } from '../characters/RemotePlayer';
 import { ErrorBoundary } from 'react-error-boundary';
+import { CloudStreamViewer } from '../cloud/CloudStreamViewer';
+import { MAX_ACTIVE_NPCS } from '../../systems/eventScheduler';
 
 const SceneContent = () => {
     const isPlaying = useGameStore(state => state.gameState.isPlaying);
     const inGameTime = useGameStore(state => state.gameState.inGameTime);
     const npcs = useGameStore(state => state.npcs);
+    const remotePlayers = useGameStore(state => state.remotePlayers);
 
     // Calculate Sun Position from time
     const [h, m] = inGameTime.split(':').map(Number);
@@ -39,7 +43,7 @@ const SceneContent = () => {
     useEffect(() => {
         if (isPlaying) {
             workerManager.init();
-            workerManager.startSimulation(500, npcs);
+            workerManager.startSimulation(MAX_ACTIVE_NPCS, npcs);
         }
         return () => workerManager.stopSimulation();
     }, [isPlaying]);
@@ -72,6 +76,9 @@ const SceneContent = () => {
                 <InstancedHumanoid />
                 <NPCSigns />
                 <Player />
+                {Object.entries(remotePlayers).map(([id, data]) => (
+                    <RemotePlayer key={id} id={id} position={data.position} rotation={data.rotation} />
+                ))}
                 <VisualEffects />
             </Physics>
         </>
@@ -82,12 +89,30 @@ export const GameCanvas = () => {
     const [renderKey, setRenderKey] = useState(0);
     const startGame = useGameStore(state => state.startGame);
     const initSocket = useGameStore(state => state.initSocket);
-    useEffect(() => {
-        initSocket();
-        startGame();
+    const isZeroFootprint = useGameStore(state => state.isZeroFootprint);
+
+    // Notfall-Lokalmodus wenn Cloud nicht erreichbar
+    const handleLocalRender = useCallback(() => {
+        useGameStore.setState({ isZeroFootprint: false });
     }, []);
+
+    useEffect(() => {
+        // Socket & Game nur initialisieren wenn NICHT Zero-Footprint
+        // Bei Zero-Footprint übernimmt der Cloud-Renderer alles
+        if (!isZeroFootprint) {
+            initSocket();
+            startGame();
+        }
+    }, [isZeroFootprint]);
+
+    // ☁️ CLOUD-ONLY MODUS: Zeige den Cloud-Stream-Viewer
+    if (isZeroFootprint) {
+        return <CloudStreamViewer onLocalRenderRequested={handleLocalRender} />;
+    }
+
+    // 🖥️ LOKALER MODUS (Notfall / Entwicklung)
     return (
-        <ErrorBoundary FallbackComponent={({error}) => <div style={{color:'red',fontWeight:'bold'}}>Renderer Error: {error.message}</div>}>
+        <ErrorBoundary FallbackComponent={({error}: any) => <div style={{color:'red',fontWeight:'bold'}}>Renderer Error: {error?.message || 'Unknown Error'}</div>}>
         <KeyboardControls map={[
             { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
             { name: 'backward', keys: ['ArrowDown', 'KeyS'] },

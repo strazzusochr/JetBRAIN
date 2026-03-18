@@ -9,15 +9,17 @@ import { getOperationsInsight } from '../systems/operationsInsights';
 import { getAdaptiveTriggerCurve } from '../systems/npcAdaptiveCurves';
 import { loadRuntimeSnapshot, saveRuntimeSnapshot, type RuntimeSnapshot } from './runtimePersistence';
 import { io } from 'socket.io-client';
+import { webrtcManager } from '../managers/WebRTCManager';
 
 declare global {
     interface Window {
-        __GAME_STORE__?: typeof useGameStore;
+        __GAME_STORE__?: any;
+        socket?: any;
     }
 }
 
 const socket = io(window.location.origin, { autoConnect: false });
-window.socket = socket;
+(window as any).socket = socket;
 
 export interface NPCData {
     id: number;
@@ -166,6 +168,8 @@ interface GameStore {
         masterVolume: number;
         muted: boolean;
     };
+    isZeroFootprint: boolean;
+    remotePlayers: Record<string, { position: [number, number, number], rotation: number }>;
     dayStats: DayStats;
     dialogState: {
         activeNodeId: string | null;
@@ -194,6 +198,11 @@ interface GameStore {
     setNearbyInteraction: (zoneId: InteractionZoneId | null) => void;
     triggerInteraction: () => void;
     initSocket: () => void;
+    updateRemotePlayer: (id: string, data: { position: [number, number, number], rotation: number }) => void;
+    removeRemotePlayer: (id: string) => void;
+    isVoiceActive: boolean;
+    toggleVoice: () => Promise<void>;
+    broadcastMoveP2P: (data: any) => void;
 }
 
 let nextNpcId = 1000;
@@ -1364,6 +1373,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     npcs: [],
     firedEventKeys: [],
     roleTrendHistory: persistedRoleTrendHistory,
+    isZeroFootprint: true, // CLOUD-ONLY: All rendering runs on Huggingface Cloud Server
+    isVoiceActive: false,
+    remotePlayers: {},
     interactionState: {
         nearbyZoneId: null,
         lastMessage: null,
@@ -1420,19 +1432,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
         masterVolume: persistedRuntimeSnapshot?.masterVolume ?? RUNTIME_DEFAULTS.masterVolume,
         muted: persistedRuntimeSnapshot?.muted ?? RUNTIME_DEFAULTS.muted,
     },
+    toggleVoice: async () => {}, // Placeholder, will be overriden by implementation below
+    broadcastMoveP2P: () => {},  // Placeholder
 
     initSocket: () => {
         if (socket.connected) return;
         socket.connect();
-            // Viewer-Registrierung beim Server
-            socket.emit('register-role', { role: 'viewer' });
+        
         socket.on('init-state', (state: any) => {
             get().evaluateEvents(state.inGameTime);
         });
+
         socket.on('time-sync', (time: string) => {
             get().evaluateEvents(time);
         });
+
+        socket.on('player-moved', (data: { id: string, position: [number, number, number], rotation: number }) => {
+            get().updateRemotePlayer(data.id, { position: data.position, rotation: data.rotation });
+        });
+
+        socket.on('player-left', (id: string) => {
+            get().removeRemotePlayer(id);
+        });
+
+        // WebRTC Signaling
+        socket.on('peer-id', (data: { id: string, peerId: string }) => {
+            if (data.id !== socket.id) {
+                console.log('[Socket] Received Peer ID from:', data.id);
+                webrtcManager.connectToPeer(data.peerId);
+            }
+        });
+
+        const myPeerId = socket.id || 'local-' + Math.random().toString(36).substr(2, 5);
+        webrtcManager.init(myPeerId);
+        socket.emit('register-peer', myPeerId);
     },
+
+    updateRemotePlayer: (id, data) => set((state) => ({
+        remotePlayers: {
+            ...state.remotePlayers,
+            [id]: data
+        }
+    })),
+
+    removeRemotePlayer: (id) => set((state) => {
+        const next = { ...state.remotePlayers };
+        delete next[id];
+        return { remotePlayers: next };
+    }),
 
     startGame: () => {
         nextNpcId = 1000;
@@ -1485,8 +1532,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 replayRiskRecoveryMinutes: null,
                 replayRecoveryBand: 'unknown',
                 replayRecoveryHint: 'Noch kein HIGH-Risiko erfasst.',
-                playerReputation: 0, moralScore: 50, showStatistics: false,
-                masterVolume: 0.5, muted: false
+                playerReputation: 0, 
+                moralScore: 50, 
+                showStatistics: false,
+                masterVolume: 0.5, 
+                muted: false
+            },
+            toggleVoice: async () => {
+                const success = await webrtcManager.startVoice();
+                if (success) {
+                    set({ isVoiceActive: true });
+                    console.log('[GameStore] Voice Chat enabled');
+                } else {
+                    set({ isVoiceActive: false });
+                }
+            },
+            broadcastMoveP2P: (data) => {
+                webrtcManager.broadcastMove(data);
             }
         });
         persistCurrentRuntimeSnapshot(get());
@@ -1512,6 +1574,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const eventMinutes = timeToMinutes(event.time);
 
                 if (eventMinutes <= currentMinutes && !firedSet.has(eventKey)) {
+                    console.log(`[Store] Firing event: ${eventKey} (${event.time}) - ${event.description}`);
                     firedSet.add(eventKey);
 
                     const countForStats = event.count === -1
@@ -1565,7 +1628,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             dayStats = dynamicState.dayStats;
 
             // Sync worker AFTER computing final NPC list
-            workerManager.syncNpcs(npcs);
+            workerManager.startSimulation(MAX_ACTIVE_NPCS, npcs);
             moveCommands.forEach(cmd => workerManager.moveNpcsToTarget(cmd.ids, cmd.target));
 
             if (state.firedEventKeys.length !== Array.from(firedSet).length) {
@@ -1898,7 +1961,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 moralScore: get().gameState.moralScore,
                 showStatistics: false,
                 masterVolume: get().gameState.masterVolume,
-                muted: get().gameState.muted
+                muted: get().gameState.muted,
+                lastTacticalOrder: null
             }
         });
         persistCurrentRuntimeSnapshot(get());
