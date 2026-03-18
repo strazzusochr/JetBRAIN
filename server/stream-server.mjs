@@ -166,17 +166,19 @@ function getChromiumArgs(settings) {
     '--disable-dev-shm-usage',
     '--enable-usermedia-screen-capturing',
     '--allow-http-screen-capture',
+    '--hide-scrollbars',
+    '--mute-audio',
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
+    '--disable-breakpad',
+    '--disable-component-extensions-with-background-pages',
+    '--disable-features=CalculateNativeWinOcclusion,InterestFeedContentSuggestions',
+    '--disable-ipc-flooding-protection',
     '--disable-renderer-backgrounding',
-    '--disable-extensions',
-    '--disable-default-apps',
-    '--no-first-run',
-    '--disable-frame-rate-limit',
-    '--disable-gpu-vsync',
-    '--disable-features=UseEcoQoSForBackgroundProcess',
-    `--window-size=${settings.width},${settings.height}`,
-    '--hide-scrollbars'
+    '--enable-automation',
+    '--password-store=basic',
+    '--use-mock-keychain',
+    '--force-device-scale-factor=1',
   ];
 
   if (RENDER_BACKEND === 'software') {
@@ -571,17 +573,34 @@ async function bootstrapRendererTransport(settings) {
       });
     }
 
-    async function waitForBestCanvas(timeoutMs = 30000) {
+    async function waitForBestCanvas(timeoutMs = 60000) {
       const start = performance.now();
+      
+      // Heartbeat: Force requestAnimationFrame to stay alive
+      function forceTick() {
+        if (window.__HEARTBEAT_ACTIVE__) return;
+        window.__HEARTBEAT_ACTIVE__ = true;
+        const tick = () => {
+          window.dispatchEvent(new Event('resize')); // Subtle hint that things are moving
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        console.log('💓 Headless Heartbeat started');
+      }
+      forceTick();
+
       while (performance.now() - start < timeoutMs) {
         const canvases = Array.from(document.querySelectorAll('canvas'));
         const best = canvases
           .filter((canvas) => canvas.width > 0 && canvas.height > 0)
           .sort((a, b) => (b.width * b.height) - (a.width * a.height))[0];
-        if (best) return best;
-        await wait(200);
+        if (best) {
+          console.log(`✅ Canvas found: ${best.width}x${best.height}`);
+          return best;
+        }
+        await wait(500);
       }
-      throw new Error('No captureable canvas found');
+      throw new Error('No captureable canvas found after 60s');
     }
 
     function getStore() {
@@ -865,9 +884,19 @@ async function startCloudRenderer() {
   page = await browser.newPage();
   await page.setViewport({ width: settings.width, height: settings.height, deviceScaleFactor: 1 });
 
-  console.log('🌍 Loading game...');
-  await page.goto(`http://127.0.0.1:${internalPort}`, {
-    waitUntil: 'domcontentloaded',
+  // 📝 Monitor Page Logs
+  page.on('console', msg => {
+    const text = msg.text();
+    if (!text.includes('Download the React DevTools') && !text.includes('three.js')) {
+      console.log(`[PAGE] ${msg.type().toUpperCase()}: ${text}`);
+    }
+  });
+  page.on('error', err => console.error('🔴 [PAGE ERROR]', err));
+  page.on('pageerror', err => console.error('💀 [PAGE CRASH]', err));
+
+  console.log('🌍 Loading game engine...');
+  await page.goto(`http://127.1:${internalPort}`, {
+    waitUntil: ['networkidle2', 'load'],
     timeout: 120000
   });
 

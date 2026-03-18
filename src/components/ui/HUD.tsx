@@ -201,7 +201,8 @@ export const HUD = () => {
     const masterVolume = useGameStore(state => state.gameState.masterVolume);
     const muted = useGameStore(state => state.gameState.muted);
     const interactionState = useGameStore(state => state.interactionState);
-    const { advanceHour, rewindHour, advanceMinute, rewindMinute, toggleTimePause, setTimeSpeed, setMasterVolume, setMuted, showStatisticsPanel, dismissStatistics } = useGameStore();
+    const isVoiceActive = useGameStore(state => state.isVoiceActive);
+    const { advanceHour, rewindHour, advanceMinute, rewindMinute, toggleTimePause, setTimeSpeed, setMasterVolume, setMuted, showStatisticsPanel, dismissStatistics, toggleVoice, initSocket } = useGameStore();
 
     // Timeline Scroll Ref
     const timelineRef = useRef<HTMLDivElement>(null);
@@ -250,17 +251,17 @@ export const HUD = () => {
     const lastTime = useRef(performance.now());
 
     useEffect(() => {
-        // Socket initialisieren und Viewer registrieren
-        if (window.__GAME_STORE__ && typeof window.__GAME_STORE__.initSocket === 'function') {
-            window.__GAME_STORE__.initSocket();
-        }
+        // Socket initialisieren
+        initSocket();
+        
+        const socket = (window as any).socket;
         // Viewer-Rolle explizit registrieren
-        if (window.socket && window.socket.connected) {
-            window.socket.emit('register-role', { role: 'viewer' });
-        } else if (window.socket) {
-            window.socket.on('connect', () => {
-                window.socket.emit('register-role', { role: 'viewer' });
-                window.socket.emit('viewer-stats', { fps: 60 }); // Initialwert
+        if (socket && socket.connected) {
+            socket.emit('register-role', { role: 'viewer' });
+        } else if (socket) {
+            socket.on('connect', () => {
+                socket.emit('register-role', { role: 'viewer' });
+                socket.emit('viewer-stats', { fps: 60 });
             });
         }
         let raf: number;
@@ -270,10 +271,10 @@ export const HUD = () => {
             if (now - lastTime.current >= 1000) {
                 setFps(frameCount.current);
                 // Debug-Logging FPS und Socket
-                console.log('HUD FPS:', frameCount.current, 'Socket connected:', window.socket && window.socket.connected);
+                console.log('HUD FPS:', frameCount.current, 'Socket connected:', (window as any).socket?.connected);
                 // Viewer-Stats an Server senden
-                if (window.socket && window.socket.connected) {
-                    window.socket.emit('viewer-stats', { fps: frameCount.current });
+                if ((window as any).socket?.connected) {
+                    (window as any).socket.emit('viewer-stats', { fps: frameCount.current });
                 }
                 frameCount.current = 0;
                 lastTime.current = now;
@@ -1154,6 +1155,17 @@ export const HUD = () => {
                         }}
                     >
                         {muted ? '🔇' : '🔊'}
+                    </button>
+                    <button 
+                        onClick={toggleVoice}
+                        style={{
+                            background: 'none', border: 'none', color: isVoiceActive ? '#00ccff' : '#666',
+                            fontSize: '24px', cursor: 'pointer', padding: '0', lineHeight: 1,
+                            filter: isVoiceActive ? 'drop-shadow(0 0 5px #00ccff)' : 'none'
+                        }}
+                        title={isVoiceActive ? 'Voice Chat Aktiv' : 'Voice Chat Deaktiviert'}
+                    >
+                        {isVoiceActive ? '🎙️' : '🎤'}
                     </button>
                     <input
                         type="range" min="0" max="100" value={muted ? 0 : Math.round(masterVolume * 100)}

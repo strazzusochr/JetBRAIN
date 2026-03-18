@@ -120,6 +120,7 @@ interface GameStore {
         missionProgress: typeof INITIAL_MISSION_PROGRESS;
     };
     gameState: { 
+        cloudStreamUrl: string;
         isPlaying: boolean; 
         isTimePaused: boolean; 
         inGameTime: string; 
@@ -1373,7 +1374,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     npcs: [],
     firedEventKeys: [],
     roleTrendHistory: persistedRoleTrendHistory,
-    isZeroFootprint: false, // LOCAL DEV: render locally. HF Docker uses stream-server.mjs directly
+    isZeroFootprint: true, // DEFAULT: Cloud-Only (Hardware Protection)
     isVoiceActive: false,
     remotePlayers: {},
     interactionState: {
@@ -1387,6 +1388,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         history: [],
     },
     gameState: { 
+        cloudStreamUrl: 'https://wrzzzrzr-jetbrain.hf.space',
         isPlaying: false, isTimePaused: false, inGameTime: persistedInGameTime,
         tensionLevel: getTensionLevelForMinutes(timeToMinutes(persistedInGameTime)),
         timeSpeed: persistedRuntimeSnapshot?.timeSpeed ?? RUNTIME_DEFAULTS.timeSpeed,
@@ -1494,6 +1496,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             },
             dayStats: { killed: 0, arrested: 0, injured: 0, damage: 0 },
             gameState: { 
+                cloudStreamUrl: get().gameState.cloudStreamUrl,
                 isPlaying: true, isTimePaused: false, inGameTime: '06:00', 
                 tensionLevel: 10, timeSpeed: 1, 
                 currentPhaseLabel: '🌅 Tagesbeginn — Stadt erwacht',
@@ -1920,6 +1923,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             },
             dayStats: { killed: 0, arrested: 0, injured: 0, damage: 0 },
             gameState: { 
+                cloudStreamUrl: get().gameState.cloudStreamUrl,
                 isPlaying: true, isTimePaused: false, inGameTime: '00:00', 
                 tensionLevel: 10, timeSpeed: get().gameState.timeSpeed, 
                 currentPhaseLabel: '🌅 Tagesbeginn — Stadt erwacht',

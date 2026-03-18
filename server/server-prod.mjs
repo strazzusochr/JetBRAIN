@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import compression from 'compression';
@@ -74,6 +74,23 @@ io.on('connection', (socket) => {
     socket.on('update-time', (time) => {
         worldState.inGameTime = time;
         socket.broadcast.emit('time-sync', time);
+    });
+
+    socket.on('player-moved', (data) => {
+        // Relay position to others
+        socket.broadcast.emit('player-moved', {
+            id: socket.id,
+            position: data.position,
+            rotation: data.rotation
+        });
+    });
+
+    socket.on('register-peer', (peerId) => {
+        socket.broadcast.emit('peer-id', { id: socket.id, peerId: peerId });
+    });
+
+    socket.on('disconnect', () => {
+        socket.broadcast.emit('player-left', socket.id);
     });
 });
 

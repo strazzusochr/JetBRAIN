@@ -388,6 +388,19 @@ export const Player = () => {
 
             state.camera.position.lerp(targetCamPos, 0.06);
             state.camera.lookAt(lookTarget.x, lookTarget.y, lookTarget.z);
+
+            // Emit position for multiplayer (Phase 6.1 Socket + 6.2 P2P)
+            const moveData = {
+                position: [position.x, position.y, position.z],
+                rotation: rotation.yaw
+            };
+
+            const sock = (window as any).socket;
+            if (sock && sock.connected) {
+                sock.emit('player-moved', moveData);
+            }
+            
+            useGameStore.getState().broadcastMoveP2P(moveData);
         }
     });
 

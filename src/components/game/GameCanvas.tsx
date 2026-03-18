@@ -15,6 +15,14 @@ import { Player } from '../characters/Player';
 import { RemotePlayer } from '../characters/RemotePlayer';
 import { ErrorBoundary } from 'react-error-boundary';
 import { MAX_ACTIVE_NPCS } from '../../systems/eventScheduler';
+import { CloudStreamViewer } from '../cloud/CloudStreamViewer';
+
+/**
+ * GameCanvas — HYBRID RENDERER
+ * 
+ * Wenn isZeroFootprint === true, wird kein lokales WebGL initialisiert.
+ * Stattdessen wird der CloudStreamViewer eingebunden.
+ */
 
 const SceneContent = () => {
     const isPlaying = useGameStore(state => state.gameState.isPlaying);
@@ -85,6 +93,7 @@ const SceneContent = () => {
 };
 
 export const GameCanvas = () => {
+    const isZeroFootprint = useGameStore(state => state.isZeroFootprint);
     const [renderKey, setRenderKey] = useState(0);
     const startGame = useGameStore(state => state.startGame);
     const initSocket = useGameStore(state => state.initSocket);
@@ -93,6 +102,11 @@ export const GameCanvas = () => {
         initSocket();
         startGame();
     }, []);
+
+    // ☁️ ZERO FOOTPRINT MODE: Starte keine lokale Engine
+    if (isZeroFootprint) {
+        return <CloudStreamViewer />;
+    }
 
     return (
         <ErrorBoundary FallbackComponent={({error}: any) => <div style={{color:'red',fontWeight:'bold'}}>Renderer Error: {error?.message || 'Unknown Error'}</div>}>

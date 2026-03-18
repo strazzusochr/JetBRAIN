@@ -54,8 +54,9 @@ Erstellung eines voll funktionsfähigen, taktischen 3D-Web-Games mit maximaler G
   - ✅ **CloudStreamViewer.tsx**: WebRTC-Viewer, Socket.IO-Input-Forwarding, Profile-Switcher
   - ✅ **GameCanvas.tsx**: Cloud-Viewer statt 3D-Canvas bei Zero-Footprint
   - ✅ **Dockerfile**: Chromium + Puppeteer + `stream-server.mjs` für Cloud-Rendering
-- [x] **Verifizierung**: Screenshot beweist ZERO lokale GPU/CPU-Last
-- [ ] **Deploy**: Push zu Huggingface Spaces (awaiting)
+- [x] **Bugfix: Render-Stall (0 FPS)**:
+  - ✅ `stream-server.mjs`: Headless Heartbeat & optimierte Chromium-Flags implementiert.
+- [/] **Deploy**: Push zu GitHub/Huggingface (in progress)
 
 ### 🎉 PHASE 6.1: MULTIPLAYER BASIS ERFOLGREICH (2026-03-18)
 - [x] **Socket Relay System**:

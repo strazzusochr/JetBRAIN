@@ -1,23 +1,51 @@
-import { createNPCMaterial } from '../../materials/AAAMaterialSystem';
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../stores/gameStore';
 import { workerManager } from '../../managers/WorkerManager';
-import { createHighPolyHumanMesh } from '../../meshes/ProceduralHumanMesh';
 import { lodManager } from '../../managers/LODManager';
+import { NPC_COLORS } from '../../systems/eventScheduler';
+
+/**
+ * InstancedHumanoid V4 — FARBIGE NPCs + CPU-OPTIMIERT
+ * 
+ * Fixes:
+ * 1. NPC-Farben nach Typ: Polizei=Blau, Demo=Orange, Zivi=Grau
+ * 2. CPU-freundliche Geometrien (keine Subdivision!)
+ * 3. Proper InstanceColor initialization
+ * 4. LOD-Cache alle 3 Frames
+ * 5. MeshLambertMaterial (leichter als PhysicalMaterial)
+ */
+
+const COLOR_CACHE: Record<string, THREE.Color> = {};
+Object.entries(NPC_COLORS).forEach(([type, hex]) => {
+    COLOR_CACHE[type] = new THREE.Color(hex);
+});
+const DEFAULT_COLOR = new THREE.Color('#888888');
+const tmpColor = new THREE.Color();
+
+function createLODGeometry(lod: number): THREE.BufferGeometry {
+    switch (lod) {
+        case 0: return new THREE.CapsuleGeometry(0.15, 1.0, 8, 16);
+        case 1: return new THREE.CapsuleGeometry(0.14, 0.9, 4, 12);
+        case 2: return new THREE.CapsuleGeometry(0.13, 0.8, 3, 8);
+        case 3: return new THREE.CylinderGeometry(0.13, 0.10, 1.6, 6, 1);
+        default: return new THREE.BoxGeometry(0.25, 1.5, 0.2);
+    }
+}
+
+const MAX = 250;
 
 export const InstancedHumanoid = () => {
     const { camera } = useThree();
     
-    // Wir nutzen 5 InstancedMeshes für die 5 LOD-Stufen
     const lod0Ref = useRef<THREE.InstancedMesh>(null);
     const lod1Ref = useRef<THREE.InstancedMesh>(null);
     const lod2Ref = useRef<THREE.InstancedMesh>(null);
     const lod3Ref = useRef<THREE.InstancedMesh>(null);
     const lod4Ref = useRef<THREE.InstancedMesh>(null);
-    
     const auraRef = useRef<THREE.InstancedMesh>(null);
+    
     const temp = useMemo(() => new THREE.Object3D(), []);
     const hidden = useMemo(() => {
         const o = new THREE.Object3D();
@@ -27,39 +55,68 @@ export const InstancedHumanoid = () => {
         return o.matrix.clone();
     }, []);
 
-    // Geometrien für verschiedene LODs
     const geos = useMemo(() => [
-        createHighPolyHumanMesh(0), // 200k
-        createHighPolyHumanMesh(1), // 50k
-        createHighPolyHumanMesh(2), // 10k
-        createHighPolyHumanMesh(3), // 2k
-        createHighPolyHumanMesh(4), // 500
+        createLODGeometry(0),
+        createLODGeometry(1),
+        createLODGeometry(2),
+        createLODGeometry(3),
+        createLODGeometry(4),
     ], []);
 
-    // Materialien (Basis)
-    const baseMat = useMemo(() => new THREE.MeshPhysicalMaterial({ metalness: 0, roughness: 0.5 }), []);
+    const baseMat = useMemo(() => new THREE.MeshLambertMaterial({ 
+        color: 0xffffff,
+    }), []);
 
-    // Aura geometry
-    const auraGeo = useMemo(() => new THREE.SphereGeometry(0.8, 8, 8), []);
+    const auraGeo = useMemo(() => new THREE.SphereGeometry(0.6, 6, 6), []);
     const auraMat = useMemo(() => new THREE.MeshBasicMaterial({ 
         transparent: true, 
-        opacity: 0.2,
+        opacity: 0.15,
         depthWrite: false,
         blending: THREE.AdditiveBlending
     }), []);
 
-    const MAX = 500;
+    const frameCounter = useRef(0);
+    const lodCache = useRef<number[]>(new Array(MAX).fill(4));
+
+    // Initialize instanceColor buffers on mount
+    useEffect(() => {
+        const refs = [lod0Ref, lod1Ref, lod2Ref, lod3Ref, lod4Ref];
+        refs.forEach((ref) => {
+            if (ref.current) {
+                // Force create instanceColor by setting first instance
+                const white = new THREE.Color(0xffffff);
+                for (let i = 0; i < MAX; i++) {
+                    ref.current.setColorAt(i, white);
+                }
+                if (ref.current.instanceColor) {
+                    ref.current.instanceColor.needsUpdate = true;
+                }
+            }
+        });
+        if (auraRef.current) {
+            const white = new THREE.Color(0xffffff);
+            for (let i = 0; i < MAX; i++) {
+                auraRef.current.setColorAt(i, white);
+            }
+            if (auraRef.current.instanceColor) {
+                auraRef.current.instanceColor.needsUpdate = true;
+            }
+        }
+    }, []);
 
     useFrame(() => {
         const refs = [lod0Ref, lod1Ref, lod2Ref, lod3Ref, lod4Ref];
         if (refs.some(r => !r.current) || !auraRef.current) return;
         
+        frameCounter.current++;
+        const doLodUpdate = frameCounter.current % 3 === 0;
+        
         const npcs = useGameStore.getState().npcs;
         const buffer = workerManager.latestNPCBuffer;
-        const count = npcs.length;
+        const count = Math.min(npcs.length, MAX);
 
-        // Reset all LOD counts
         const lodCounts = [0, 0, 0, 0, 0];
+        let auraCount = 0;
 
         for (let i = 0; i < count; i++) {
             const npc = npcs[i];
@@ -71,37 +128,39 @@ export const InstancedHumanoid = () => {
                 z = buffer[i * 12 + 4];
             }
 
-            const dist = lodManager.calculateDistance([x, y, z], camera.position);
-            const lod = lodManager.getLODLevel(dist);
+            let lod: number;
+            if (doLodUpdate) {
+                const dist = lodManager.calculateDistance([x, y, z], camera.position);
+                lod = lodManager.getLODLevel(dist);
+                lodCache.current[i] = lod;
+            } else {
+                lod = lodCache.current[i] ?? 4;
+            }
 
             temp.position.set(x, y, z);
             temp.scale.set(1, 1, 1);
             temp.updateMatrix();
 
-            // Setze Matrix im entsprechenden LOD-Mesh
             const targetRef = refs[lod].current!;
             const idx = lodCounts[lod];
             targetRef.setMatrixAt(idx, temp.matrix);
             
-            // Farbe setzen (falls unterstützt)
-            const color = new THREE.Color(npc.outfitColor);
+            // NPC-Farbe nach Typ
+            const color = COLOR_CACHE[npc.type] || DEFAULT_COLOR;
             targetRef.setColorAt(idx, color);
             
             lodCounts[lod]++;
 
-            // Aura (nur für nähere NPCs oder global reduziert)
-            if (lod < 3) {
+            if (lod < 2 && auraCount < MAX) {
                 temp.position.set(x, y - 0.5, z);
-                temp.scale.set(1, 0.2, 1);
+                temp.scale.set(1, 0.15, 1);
                 temp.updateMatrix();
-                auraRef.current!.setMatrixAt(i, temp.matrix);
-                auraRef.current!.setColorAt(i, color);
-            } else {
-                auraRef.current!.setMatrixAt(i, hidden);
+                auraRef.current!.setMatrixAt(auraCount, temp.matrix);
+                auraRef.current!.setColorAt(auraCount, color);
+                auraCount++;
             }
         }
 
-        // Verstecke ungenutzte Instanzen in jedem LOD-Level
         refs.forEach((ref, l) => {
             const mesh = ref.current!;
             for (let i = lodCounts[l]; i < MAX; i++) {
@@ -112,14 +171,18 @@ export const InstancedHumanoid = () => {
             mesh.count = lodCounts[l];
         });
 
+        for (let i = auraCount; i < MAX; i++) {
+            auraRef.current!.setMatrixAt(i, hidden);
+        }
+        auraRef.current.count = auraCount;
         auraRef.current.instanceMatrix.needsUpdate = true;
         if (auraRef.current.instanceColor) auraRef.current.instanceColor.needsUpdate = true;
     });
 
     return (
         <>
-            <instancedMesh ref={lod0Ref} args={[geos[0], baseMat, MAX]} castShadow />
-            <instancedMesh ref={lod1Ref} args={[geos[1], baseMat, MAX]} castShadow />
+            <instancedMesh ref={lod0Ref} args={[geos[0], baseMat, MAX]} />
+            <instancedMesh ref={lod1Ref} args={[geos[1], baseMat, MAX]} />
             <instancedMesh ref={lod2Ref} args={[geos[2], baseMat, MAX]} />
             <instancedMesh ref={lod3Ref} args={[geos[3], baseMat, MAX]} />
             <instancedMesh ref={lod4Ref} args={[geos[4], baseMat, MAX]} />
