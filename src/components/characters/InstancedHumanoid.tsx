@@ -22,7 +22,6 @@ Object.entries(NPC_COLORS).forEach(([type, hex]) => {
     COLOR_CACHE[type] = new THREE.Color(hex);
 });
 const DEFAULT_COLOR = new THREE.Color('#888888');
-const tmpColor = new THREE.Color();
 
 function createLODGeometry(lod: number): THREE.BufferGeometry {
     switch (lod) {
@@ -37,7 +36,7 @@ function createLODGeometry(lod: number): THREE.BufferGeometry {
 const MAX = 250;
 
 export const InstancedHumanoid = () => {
-    const { camera } = useThree();
+
     
     const lod0Ref = useRef<THREE.InstancedMesh>(null);
     const lod1Ref = useRef<THREE.InstancedMesh>(null);
@@ -104,8 +103,9 @@ export const InstancedHumanoid = () => {
         }
     }, []);
 
-    useFrame(() => {
-        const refs = [lod0Ref, lod1Ref, lod2Ref, lod3Ref, lod4Ref];
+    const refs = [lod0Ref, lod1Ref, lod2Ref, lod3Ref, lod4Ref];
+
+    useFrame(({ camera }) => {
         if (refs.some(r => !r.current) || !auraRef.current) return;
         
         frameCounter.current++;
@@ -132,6 +132,7 @@ export const InstancedHumanoid = () => {
             if (doLodUpdate) {
                 const dist = lodManager.calculateDistance([x, y, z], camera.position);
                 lod = lodManager.getLODLevel(dist);
+                
                 lodCache.current[i] = lod;
             } else {
                 lod = lodCache.current[i] ?? 4;
@@ -181,11 +182,11 @@ export const InstancedHumanoid = () => {
 
     return (
         <>
-            <instancedMesh ref={lod0Ref} args={[geos[0], baseMat, MAX]} />
-            <instancedMesh ref={lod1Ref} args={[geos[1], baseMat, MAX]} />
-            <instancedMesh ref={lod2Ref} args={[geos[2], baseMat, MAX]} />
-            <instancedMesh ref={lod3Ref} args={[geos[3], baseMat, MAX]} />
-            <instancedMesh ref={lod4Ref} args={[geos[4], baseMat, MAX]} />
+            <instancedMesh ref={lod0Ref} args={[geos[0], baseMat, MAX]} castShadow receiveShadow />
+            <instancedMesh ref={lod1Ref} args={[geos[1], baseMat, MAX]} castShadow receiveShadow />
+            <instancedMesh ref={lod2Ref} args={[geos[2], baseMat, MAX]} receiveShadow />
+            <instancedMesh ref={lod3Ref} args={[geos[3], baseMat, MAX]} receiveShadow />
+            <instancedMesh ref={lod4Ref} args={[geos[4], baseMat, MAX]} receiveShadow />
             <instancedMesh ref={auraRef} args={[auraGeo, auraMat, MAX]} />
         </>
     );

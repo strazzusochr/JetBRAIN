@@ -18,7 +18,8 @@ declare global {
     }
 }
 
-const isRenderer = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('renderer') === 'true';
+export const isRenderer = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('renderer') === 'true';
+export const streamProfile = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('profile') || 'medium' : 'medium';
 const socketUrl = isRenderer 
     ? (window.location.protocol + '//' + window.location.hostname + ':7860') 
     : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
@@ -174,6 +175,7 @@ interface GameStore {
         masterVolume: number;
         muted: boolean;
     };
+    streamProfile: string;
     isZeroFootprint: boolean;
     remotePlayers: Record<string, { position: [number, number, number], rotation: number }>;
     dayStats: DayStats;
@@ -1379,6 +1381,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     npcs: [],
     firedEventKeys: [],
     roleTrendHistory: persistedRoleTrendHistory,
+    streamProfile,
     isZeroFootprint: typeof window !== 'undefined' && !window.location.search.includes('renderer=true'), // DEFAULT: Cloud-Only (Hardware Protection)
     isVoiceActive: false,
     remotePlayers: {},

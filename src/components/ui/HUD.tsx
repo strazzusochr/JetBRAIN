@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useGameStore } from '../../stores/gameStore';
+import { useGameStore, isRenderer } from '../../stores/gameStore';
 import { EVENT_TIMELINE } from '../../systems/eventScheduler';
 import { getInteractionAvailability, getInteractionZoneById, getMissionChecklist } from '../../systems/interactionZones';
 import { getHudTelemetry } from '../../systems/hudTelemetry';
@@ -249,6 +249,25 @@ export const HUD = () => {
     const [fps, setFps] = useState(60);
     const frameCount = useRef(0);
     const lastTime = useRef(performance.now());
+    const [gpuLabel, setGpuLabel] = useState<string>('Detecting...');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || (canvas.getContext('experimental-webgl') as WebGLRenderingContext);
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'Generic GPU';
+                    setGpuLabel(renderer);
+                } else {
+                    setGpuLabel('Software / No WebGL');
+                }
+            } catch (e) {
+                setGpuLabel('Detection Error');
+            }
+        }
+    }, []);
 
     useEffect(() => {
         // Socket initialisieren
@@ -673,9 +692,21 @@ export const HUD = () => {
                             fontWeight: 'bold',
                             color: fps > 50 ? '#00ff88' : fps > 30 ? '#ffaa00' : '#ff4444',
                             border: `1px solid ${fps > 50 ? 'rgba(0,255,136,0.2)' : fps > 30 ? 'rgba(255,170,0,0.2)' : 'rgba(255,68,68,0.2)'}`,
-                            textShadow: 'none'
+                            textShadow: 'none',
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center'
                         }}>
-                            RENDER {fps} FPS
+                            <span>RENDER {fps} FPS</span>
+                            {isRenderer && (
+                                <span style={{ 
+                                    paddingLeft: '8px', 
+                                    borderLeft: '1px solid rgba(255,255,255,0.2)',
+                                    color: gpuLabel.toLowerCase().includes('nvidia') ? '#76b900' : '#00ccff'
+                                }}>
+                                    GPU: {gpuLabel}
+                                </span>
+                            )}
                         </div>
                         <div style={{ display: 'flex', gap: '4px', pointerEvents: 'auto' }}>
                             <button onClick={() => togglePanelMinimize('right')} style={{ ...btnStyle, minWidth: '46px', padding: '4px 6px', fontSize: '11px' }} title="Panel minimieren">Min</button>

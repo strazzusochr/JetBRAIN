@@ -61,7 +61,7 @@ const io = new Server(httpServer, {
     },
     methods: ['GET', 'POST']
   },
-  maxHttpBufferSize: 5e6 // 5MB for binary frames
+  maxHttpBufferSize: 1e7 // 10MB for high-fidelity AAA frames
 });
 
 // ─── Internal static server for Puppeteer ───
@@ -70,6 +70,69 @@ const internalServer = createServer(internalApp);
 internalApp.use(express.static(path.join(__dirname, '../dist')));
 internalApp.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
+// ─── Public API & Viewer Routes ───
+app.use(express.json());
+
+app.post('/api/profile/:profile', async (req, res) => {
+  const { profile } = req.params;
+  if (!STREAM_PROFILES[profile]) {
+    return res.status(400).json({ ok: false, error: 'invalid_profile' });
+  }
+  try {
+    await switchProfile(profile);
+    res.json({ ok: true, profile: currentProfileKey });
+  } catch (err) {
+    console.error(`❌ Profile switch error (${profile}):`, err);
+    res.status(500).json({ ok: false, error: err.message, stack: err.stack });
+  }
+});
+
+app.get('/api/health', async (req, res) => {
+  const gpuInfo = page ? await page.evaluate(() => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl');
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      return gl.getParameter(debugInfo.UNMASKED_RENDERER_ID);
+    } catch(e) { return 'unsupported'; }
+  }) : 'inactive';
+
+  res.json({
+    ok: true,
+    status: isStreaming ? 'streaming' : 'idle',
+    fps: currentFps,
+    profile: currentProfileKey,
+    gpu: gpuInfo,
+    renderer: rendererTransportSource
+  });
+});
+
+app.get('/api/test-walk', async (req, res) => {
+  if (!page) return res.status(503).json({ ok: false, error: 'renderer_not_ready' });
+  
+  console.log('🚶 Starting Autonomous Walk Proof (10s)...');
+  try {
+    await page.keyboard.down('ArrowUp');
+    
+    // Log performance every second
+    const stats = [];
+    for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        stats.push({ second: i+1, fps: currentFps });
+        console.log(`[TEST-WALK] Second ${i+1}: ${currentFps} FPS`);
+    }
+    
+    await page.keyboard.up('ArrowUp');
+    res.json({ ok: true, message: 'Walk Proof-of-Work complete', stats });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/', (req, res) => {
+  res.send(getClientHTML());
 });
 
 const STREAM_PROFILES = {
@@ -188,18 +251,21 @@ function getChromiumArgs(settings) {
       '--use-gl=egl',
       '--use-angle=swiftshader',
       '--disable-gpu',
+      '--disable-software-rasterizer',
       ...commonArgs
     ];
   }
 
-  // Hardware first: required for realistic 1080p60 targets.
+  // 🚀 ULTRA Performance Mode: Hardware Accelerated WebGL
   return [
     '--enable-gpu',
     '--ignore-gpu-blocklist',
     '--enable-webgl',
-    '--use-gl=egl',
-    '--use-angle=vulkan',
-    '--enable-features=Vulkan,CanvasOopRasterization',
+    '--use-gl=egl', // EGL is best for headless GPU passthrough
+    '--enable-gpu-rasterization',
+    '--enable-oop-rasterization',
+    '--enable-features=CanvasOopRasterization,RawDraw',
+    '--disable-software-rasterizer',
     ...commonArgs
   ];
 }
@@ -245,21 +311,38 @@ app.get('/', (req, res) => {
   res.send(getClientHTML());
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   const settings = getStreamSettings();
+  let gpuInfo = 'none';
+  
+  if (page) {
+    try {
+      gpuInfo = await page.evaluate(async () => {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return 'no-webgl';
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        return debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown';
+      });
+    } catch (e) {
+      gpuInfo = `error: ${e.message}`;
+    }
+  }
+
   res.json({
     status: 'ok',
-    fps: transportMetrics.viewerFps || transportMetrics.rendererFps || currentFps,
-    rendererFps: transportMetrics.rendererFps,
-    viewerFps: transportMetrics.viewerFps,
-    clients: viewerSocketIds.size,
-    profile: settings.profileKey,
-    width: settings.width,
-    height: settings.height,
-    transportSource: rendererTransportSource,
-    internalPort,
-    publicPort: PUBLIC_PORT,
-    renderBackend: RENDER_BACKEND
+    isStreaming,
+    profiles: Object.keys(STREAM_PROFILES),
+    currentProfile: currentProfileKey,
+    settings,
+    gpu: gpuInfo,
+    rendererBackend: RENDER_BACKEND,
+    metrics: {
+      ...transportMetrics,
+      clients: viewerSocketIds.size,
+      publicPort: PUBLIC_PORT,
+      internalPort
+    }
   });
 });
 
@@ -283,19 +366,46 @@ app.get('/api/test-walk', async (req, res) => {
     // Hold 'W' for movement
     await page.keyboard.down('KeyW');
     
-    // Simulate smooth camera pan
+    // Simulate smooth camera pan and log performance
     for (let i = 0; i < 40; i++) {
       await page.mouse.move(400 + i * 10, 300 + Math.sin(i / 5) * 40);
-      await new Promise(r => setTimeout(r, 250)); // 10 seconds total roughly
+      
+      if (i % 4 === 0) { // Every ~1 second
+         console.log(`📊 PERF-LOG | Time: ${i/4}s | Renderer FPS: ${transportMetrics.rendererFps} | Clients: ${viewerSocketIds.size}`);
+      }
+      
+      await new Promise(r => setTimeout(r, 250));
     }
-
+    
     await page.keyboard.up('KeyW');
     console.log('🏁 Walk proof finished.');
-    res.json({ ok: true, message: 'Walk sequence completed' });
+    res.json({ 
+      ok: true, 
+      message: 'Walk sequence completed',
+      finalFps: transportMetrics.rendererFps,
+      gpu: (await getGpuInfo()) 
+    });
   } catch (err) {
+    console.error('❌ Walk proof failed:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+// Helper for GPU info extraction
+async function getGpuInfo() {
+  if (!page) return 'none';
+  try {
+    return await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl');
+      if (!gl) return 'no-webgl';
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      return debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown';
+    });
+  } catch (e) {
+    return `error: ${e.message}`;
+  }
+}
 
 app.post('/api/profile/:profile', async (req, res) => {
   const sourceIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
@@ -928,11 +1038,20 @@ async function startCloudRenderer() {
 
   await ensureInternalServer();
 
-  browser = await puppeteer.launch({
-    headless: getHeadlessOption(),
-    executablePath,
-    args: getChromiumArgs(settings)
-  });
+  const chromiumArgs = getChromiumArgs(settings);
+  try {
+    browser = await puppeteer.launch({
+      headless: getHeadlessOption(),
+      executablePath,
+      args: chromiumArgs
+    });
+  } catch (launchError) {
+    console.error('❌ Failed to launch browser with custom path, trying default...', launchError.message);
+    browser = await puppeteer.launch({
+      headless: getHeadlessOption(),
+      args: chromiumArgs
+    });
+  }
 
   page = await browser.newPage();
   await page.setViewport({ width: settings.width, height: settings.height, deviceScaleFactor: 1 });
@@ -947,9 +1066,10 @@ async function startCloudRenderer() {
   page.on('error', err => console.error('🔴 [PAGE ERROR]', err));
   page.on('pageerror', err => console.error('💀 [PAGE CRASH]', err));
 
-  console.log('🌍 Loading game engine...');
   try {
-    await page.goto(`http://127.0.0.1:${internalPort}/?renderer=true`, {
+    const renderUrl = `http://127.0.0.1:${internalPort}/?renderer=true&profile=${settings.profileKey}`;
+    console.log(`🌍 Loading game engine with profile: ${settings.profileKey}...`);
+    await page.goto(renderUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
@@ -1012,12 +1132,18 @@ async function startCloudRenderer() {
   isStreaming = true;
 }
 
+let isSwitching = false;
 async function switchProfile(newProfile) {
+  if (isSwitching) {
+    console.warn('⚠️ Profile switch already in progress, ignoring duplicate request.');
+    return;
+  }
   if (newProfile === currentProfileKey) {
     io.emit('profile-changed', getStreamSettings());
     return;
   }
 
+  isSwitching = true;
   const previousProfile = currentProfileKey;
   console.log(`🎛️ Switching profile: ${previousProfile} -> ${newProfile}`);
   io.emit('profile-switching', { from: previousProfile, to: newProfile });
@@ -1025,13 +1151,22 @@ async function switchProfile(newProfile) {
 
   try {
     await stopCloudRenderer();
+    await new Promise(r => setTimeout(r, 800)); // Increased safety delay
     await startCloudRenderer();
     console.log(`✅ Profile active: ${newProfile}`);
   } catch (error) {
+    console.error(`❌ Profile switch FAILED for ${newProfile}. Attempting ROLLBACK to ${previousProfile}...`, error);
     currentProfileKey = previousProfile;
-    await stopCloudRenderer();
-    await startCloudRenderer();
+    try {
+      await stopCloudRenderer();
+      await startCloudRenderer();
+      console.log(`🔄 Rollback to ${previousProfile} successful.`);
+    } catch (rollbackError) {
+      console.error('💀 ROLLBACK FAILED. System in inconsistent state!', rollbackError);
+    }
     throw error;
+  } finally {
+    isSwitching = false;
   }
 }
 

@@ -2,13 +2,13 @@ import * as THREE from 'three';
 
 export class LODManager {
     private static instance: LODManager;
-    // Breitere Thresholds für bessere LOD-Verteilung bei Kameraabstand
-    // LOD 0: < 10m (Detail)
-    // LOD 1: 10-25m  
-    // LOD 2: 25-50m
-    // LOD 3: 50-100m
-    // LOD 4: > 100m (fernste, Box)
-    private lodThresholds = [10, 25, 50, 100];
+    // Aggressivere Verteilung für 60 FPS Cloud-Streaming
+    // LOD 0: < 4m (Ultra-Close)
+    // LOD 1: 4-12m  
+    // LOD 2: 12-30m
+    // LOD 3: 30-70m
+    // LOD 4: > 70m (Box/Impostor)
+    private lodThresholds = [4, 12, 30, 70];
 
     public static getInstance(): LODManager {
         if (!LODManager.instance) {

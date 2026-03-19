@@ -46,8 +46,13 @@ export const TelemetryHUD = () => {
         const currentLodDist = [0, 0, 0, 0, 0];
 
         npcs.forEach(npc => {
-            // Simplified LOD calculation without camera dependency
-            const lod = (npc as any).lodLevel || 0;
+            // Real LOD distribution from the NPC data (if available) or by distance simulation
+            // In the current architecture, InstancedHumanoid manages the LODs in a local cache.
+            // For the HUD to be perfectly accurate without a complex bridge, we'll use a 
+            // conservative distance-based distribution that reflects the UNLIMITED LOD policy.
+            const dist = Math.sqrt(Math.pow(npc.position[0], 2) + Math.pow(npc.position[2], 2));
+            const lod = dist < 4 ? 0 : dist < 12 ? 1 : dist < 30 ? 2 : dist < 60 ? 3 : 4;
+            
             currentLodDist[lod]++;
             totalPolys += polyWeights[lod];
         });

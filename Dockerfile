@@ -24,17 +24,27 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # ════════════════════════════════════════════════════════════
-# Runtime: Node.js + Chromium für Cloud-Rendering
+# Runtime: High-Performance GPU Architecture
 # ════════════════════════════════════════════════════════════
-FROM node:18-slim AS runner
+FROM nvidia/opengl:1.2-glvnd-runtime-ubuntu22.04 AS runner
 
-# Chromium-Dependencies für Puppeteer installieren
+# Environment for GPU passthrough
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,display
+
+# Install Node.js 18 & Dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
+    curl \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y --no-install-recommends \
+    nodejs \
+    chromium-browser \
     fonts-liberation \
     fonts-noto-color-emoji \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
+    libasound2 \
     libcups2 \
     libdbus-1-3 \
     libdrm2 \
@@ -46,26 +56,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcomposite1 \
     libxdamage1 \
     libxrandr2 \
-    xdg-utils \
-    libasound2 \
-    libpangocairo-1.0-0 \
     libxshmfence1 \
-    libgles2 \
-    libegl1 \
+    libpangocairo-1.0-0 \
+    libegl1-mesa \
+    libgles2-mesa \
     libvulkan1 \
     mesa-vulkan-drivers \
+    xdg-utils \
+    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 ENV PORT=7860
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV STREAM_PROFILE=aaa
 ENV HEADLESS_MODE=new
-ENV RENDER_BACKEND=software
+ENV RENDER_BACKEND=hardware
+
 EXPOSE 7860
 
 # Relevante Dateien kopieren
@@ -75,7 +86,12 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/server ./server
 
 # Hugging Face Spaces unterstützen nonroot Users
-USER node
+# Hinweis: Für GPU-Zugriff in manchen Umgebungen ist root oder spezifische Group-Membership nötig.
+# Wir bleiben bei node, stellen aber sicher, dass die Pfade stimmen.
+USER root
+RUN chown -R 1000:1000 /app
+USER 1000
 
-# ☁️ Start Cloud-Gaming-Server (stream-server.mjs mit Puppeteer)
+# ☁️ Start Cloud-Gaming-Server (Hardware Accelerated)
 CMD ["node", "server/stream-server.mjs"]
+

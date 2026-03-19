@@ -63,7 +63,15 @@ const SceneContent = () => {
             <directionalLight
                 position={sunPos}
                 intensity={sunIntensity}
-                castShadow={false}
+                castShadow={true}
+                shadow-mapSize={[4096, 4096]}
+                shadow-camera-left={-100}
+                shadow-camera-right={100}
+                shadow-camera-top={100}
+                shadow-camera-bottom={-100}
+                shadow-camera-near={1}
+                shadow-camera-far={500}
+                shadow-bias={-0.0001}
                 color={sunColor}
             />
             <hemisphereLight
@@ -108,6 +116,10 @@ export const GameCanvas = () => {
         return <CloudStreamViewer />;
     }
 
+    const streamProfile = useGameStore.getState().streamProfile || 'medium';
+    const useShadows = streamProfile === 'aaa' || streamProfile === 'high';
+    const useAntialias = streamProfile !== 'low';
+
     return (
         <ErrorBoundary FallbackComponent={({error}: any) => <div style={{color:'red',fontWeight:'bold'}}>Renderer Error: {error?.message || 'Unknown Error'}</div>}>
         <KeyboardControls map={[
@@ -118,14 +130,16 @@ export const GameCanvas = () => {
         ]}>
             <Canvas
                 key={renderKey}
-                shadows={false}
-                dpr={[0.5, 1]}
+                shadows={useShadows}
+                dpr={streamProfile === 'aaa' ? 2 : window.devicePixelRatio}
                 gl={{
-                    antialias: false,
-                    powerPreference: "low-power",
-                    precision: "lowp",
-                    stencil: false,
-                    depth: true
+                    antialias: useAntialias,
+                    powerPreference: "high-performance",
+                    precision: "highp",
+                    stencil: true,
+                    depth: true,
+                    logarithmicDepthBuffer: true,
+                    preserveDrawingBuffer: true
                 }}
                 onCreated={({ gl }) => {
                     gl.domElement.addEventListener('webglcontextrestored', () => setRenderKey(prev => prev + 1));

@@ -13,6 +13,7 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Float } from '@react-three/drei';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { useGameStore } from '../../../stores/gameStore';
 
@@ -615,6 +616,17 @@ export const VisualEffects = () => {
 
             {/* Muzzle Flashes 21:00 */}
             <MuzzleFlashes active={muzzleFlashActive} />
+
+            {/* 🎥 POST-PROCESSING (AAA-STABILITÄT) */}
+            <EffectComposer>
+                <Bloom 
+                    intensity={1.0} 
+                    luminanceThreshold={0.9} 
+                    luminanceSmoothing={0.025} 
+                    mipmapBlur 
+                />
+                <Vignette offset={0.1} darkness={1.1} />
+            </EffectComposer>
         </>
     );
 };
