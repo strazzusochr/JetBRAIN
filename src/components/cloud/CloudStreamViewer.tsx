@@ -1,124 +1,188 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../../stores/gameStore';
 
 /**
- * CloudStreamViewer — WebRTC + Socket.IO Connector
+ * CloudStreamViewer V3 — Socket.IO JPEG Frame Transport
  * 
- * Verwendet den cloud-rendering server auf Huggingface um das Spiel 
- * mit 60 FPS zu streamen ohne lokale GPU/CPU Last.
+ * KERNFIX: WebRTC funktioniert NICHT in HuggingFace Docker.
+ * Stattdessen empfangen wir JPEG-Frames direkt per Socket.IO
+ * vom captureLoop() in stream-server.mjs.
+ * 
+ * Architektur:
+ *   Server: page.screenshot() → io.emit('frame', jpegBuffer)
+ *   Client: socket.on('frame') → Blob URL → <img> Tag
+ *   
+ * Ergebnis: Zuverlässiger Zero-Footprint Stream in JEDER Cloud-Umgebung.
  */
 export const CloudStreamViewer: React.FC = () => {
-    const videoRef = useRef<HTMLVideoElement>(null);
+    const imgRef = useRef<HTMLImageElement>(null);
     const { cloudStreamUrl } = useGameStore(state => state.gameState);
-    const [status, setStatus] = useState('Connecting to Cloud...');
-    const [metrics, setMetrics] = useState({ fps: 0, quality: 'AAA' });
-    const peerRef = useRef<RTCPeerConnection | null>(null);
-    const socketRef = useRef<any>(null);
+    const [status, setStatus] = useState('Verbindung zur Cloud...');
+    const [streamFps, setStreamFps] = useState(0);
+    const [rendererFps, setRendererFps] = useState(0);
+    const socketRef = useRef<Socket | null>(null);
+    const frameCountRef = useRef(0);
+    const lastFpsTimeRef = useRef(Date.now());
+    const prevBlobUrlRef = useRef<string | null>(null);
+
+    // FPS-Zähler für empfangene Frames
+    const countFrame = useCallback(() => {
+        frameCountRef.current++;
+        const now = Date.now();
+        if (now - lastFpsTimeRef.current >= 1000) {
+            setStreamFps(frameCountRef.current);
+            lastFpsTimeRef.current = now;
+            frameCountRef.current = 0;
+        }
+    }, []);
 
     useEffect(() => {
-        // 1. Socket.IO Verbindung zum Rendering-Server
-        const socket = io(cloudStreamUrl, {
+        const socketUrl = cloudStreamUrl || window.location.origin;
+        console.log('🔌 CloudStreamViewer V3: Verbinde zu', socketUrl);
+
+        const socket = io(socketUrl, {
             transports: ['polling', 'websocket'],
-            upgrade: true
+            upgrade: true,
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: Infinity,
+            timeout: 20000,
         });
         socketRef.current = socket;
 
         socket.on('connect', () => {
-            setStatus('Handshaking with Renderer...');
+            console.log('✅ Socket.IO verbunden:', socket.id);
+            setStatus('Verbunden — Warte auf Video-Stream...');
             socket.emit('register-role', { role: 'viewer' });
         });
 
-        socket.on('renderer-ready', async ({ rendererId }) => {
-            setStatus('Establishing WebRTC Stream...');
+        // 🎥 JPEG Frame Empfang (Kernfunktion)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        socket.on('frame', (jpegData: any) => {
+            if (!imgRef.current) return;
             
-            // 2. WebRTC Peer Connection
-            const peer = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-            });
-            peerRef.current = peer;
-
-            peer.ontrack = (event) => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = event.streams[0];
-                }
-            };
-
-            // Signalling via Socket.IO
-            socket.on('webrtc-signal', async ({ fromId, payload }) => {
-                if (fromId === rendererId) {
-                    if (payload.type === 'offer') {
-                        await peer.setRemoteDescription(new RTCSessionDescription(payload));
-                        const answer = await peer.createAnswer();
-                        await peer.setLocalDescription(answer);
-                        socket.emit('webrtc-signal', { targetId: fromId, payload: peer.localDescription });
-                    } else if (payload.candidate) {
-                        await peer.addIceCandidate(new RTCIceCandidate(payload.candidate));
-                    }
-                }
-            });
-
-            // Initial offer trigger (manche server brauchen das)
-            const offer = await peer.createOffer();
-            await peer.setLocalDescription(offer);
-            socket.emit('webrtc-signal', { targetId: rendererId, payload: peer.localDescription });
+            // Alten Blob URL freigeben (Speicherleck verhindern)
+            if (prevBlobUrlRef.current) {
+                URL.revokeObjectURL(prevBlobUrlRef.current);
+            }
+            
+            const raw = jpegData instanceof ArrayBuffer ? jpegData : (jpegData.buffer || jpegData);
+            const blob = new Blob([new Uint8Array(raw)], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            imgRef.current.src = url;
+            prevBlobUrlRef.current = url;
+            
+            countFrame();
+            
+            if (status !== 'LIVE STREAM AKTIV (Zero-Footprint)') {
+                setStatus('LIVE STREAM AKTIV (Zero-Footprint)');
+            }
         });
 
-        socket.on('transport-metrics', (data) => {
-            setMetrics(prev => ({ ...prev, fps: data.viewerFps || data.rendererFps }));
-            if (data.viewerFps > 0) setStatus('Streaming Live (Zero-Footprint)');
+        // HUD-State vom Renderer empfangen (wird vom getClientHTML bereits verarbeitet)
+        socket.on('hud-state', () => {
+            // HUD-Daten werden direkt vom eingebetteten Viewer verarbeitet
         });
 
-        socket.on('disconnect', () => setStatus('Cloud Connection Lost. Retrying...'));
+        // Transport-Metriken (Renderer FPS)
+        socket.on('transport-metrics', (data: any) => {
+            if (data.rendererFps) setRendererFps(data.rendererFps);
+        });
+
+        socket.on('disconnect', () => {
+            setStatus('Cloud-Verbindung unterbrochen. Reconnecting...');
+            setStreamFps(0);
+        });
+
+        socket.on('connect_error', (err: any) => {
+            console.warn('⚠️ Socket.IO Fehler:', err.message);
+            setStatus(`Verbindungsfehler: ${err.message}`);
+        });
 
         return () => {
             socket.disconnect();
-            if (peerRef.current) peerRef.current.close();
+            if (prevBlobUrlRef.current) {
+                URL.revokeObjectURL(prevBlobUrlRef.current);
+            }
         };
-    }, [cloudStreamUrl]);
+    }, [cloudStreamUrl, countFrame]);
 
-    // Input Forwarding
-    const handleInput = (type: string, data: any) => {
-        if (socketRef.current?.connected) {
-            socketRef.current.emit(type, data);
-        }
-    };
+    // Input Forwarding (Tastatur + Maus an Server)
+    useEffect(() => {
+        const socket = socketRef.current;
+        if (!socket) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (socket.connected) socket.emit('keydown', { key: e.code });
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (socket.connected) socket.emit('keyup', { key: e.code });
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
+
+    const isLive = streamFps > 0;
 
     return (
-        <div className="cloud-viewer-container" style={{
+        <div style={{
             position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh',
-            background: '#000', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+            background: '#0a0a0a', overflow: 'hidden'
         }}>
-            <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                onMouseMove={(e) => handleInput('mousemove', { x: e.clientX, y: e.clientY })}
-                onMouseDown={(e) => handleInput('mousedown', { button: e.button === 0 ? 'left' : 'right' })}
-                onMouseUp={(e) => handleInput('mouseup', { button: e.button === 0 ? 'left' : 'right' })}
+            {/* Video-Stream als JPEG-Sequenz */}
+            <img
+                ref={imgRef}
+                alt="Cloud Stream"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: isLive ? 'block' : 'none'
+                }}
+                onMouseMove={(e) => {
+                    socketRef.current?.emit('mousemove', { x: e.clientX, y: e.clientY });
+                }}
+                onMouseDown={(e) => {
+                    socketRef.current?.emit('mousedown', { button: e.button === 0 ? 'left' : 'right' });
+                }}
+                onMouseUp={(e) => {
+                    socketRef.current?.emit('mouseup', { button: e.button === 0 ? 'left' : 'right' });
+                }}
+                onClick={(e) => {
+                    socketRef.current?.emit('click', { x: e.clientX, y: e.clientY });
+                }}
             />
 
-            <div className="cloud-status-overlay" style={{
-                position: 'absolute', top: '2rem', right: '2rem',
-                background: 'rgba(0,0,0,0.7)', padding: '1rem', borderRadius: '4px',
-                color: '#0ff', fontFamily: 'monospace', border: '1px solid #0ff',
-                pointerEvents: 'none'
-            }}>
-                <div>CLOUD RENDERER: <span style={{ color: '#fff' }}>HUGGINGFACE-SPACE</span></div>
-                <div>STATUS: <span style={{ color: status.includes('Live') ? '#0f0' : '#ff0' }}>{status}</span></div>
-                <div>STREAM: <span style={{ color: '#fff' }}>1080p @ {metrics.fps} FPS</span></div>
-                <div>LOCAL LOAD: <span style={{ color: '#0f0' }}>ZERO (VIDEO ONLY)</span></div>
-            </div>
-
-            {/* Hint for Input */}
-            <div style={{
-                 position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
-                 color: 'rgba(255,255,255,0.3)', pointerEvents: 'none'
-            }}>
-                [ CLOUD INTERFACE ACTIVE — WASD TO MOVE ]
-            </div>
+            {/* Ladeanzeige wenn kein Stream */}
+            {!isLive && (
+                <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)', textAlign: 'center',
+                    color: '#0ff', fontFamily: 'monospace'
+                }}>
+                    <div style={{ fontSize: '24px', marginBottom: '1rem' }}>
+                        ⏳ {status}
+                    </div>
+                    {rendererFps > 0 && (
+                        <div style={{ fontSize: '14px', color: '#0f0', marginBottom: '1rem' }}>
+                            Renderer: {rendererFps} FPS — Frames werden übertragen...
+                        </div>
+                    )}
+                    <div style={{
+                        width: '40px', height: '40px', border: '3px solid #0ff',
+                        borderTop: '3px solid transparent', borderRadius: '50%',
+                        animation: 'spin 1s linear infinite', margin: '0 auto'
+                    }} />
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+            )}
         </div>
     );
 };

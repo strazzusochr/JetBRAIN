@@ -1084,8 +1084,16 @@ async function startCloudRenderer() {
     console.log('⚠️ No canvas found after 45s, proceeding with capture attempt');
   });
 
-  const rendererInfo = await bootstrapRendererTransport(settings);
-  console.log(`✅ Game loaded! Starting WebRTC stream at ${settings.fps} FPS target (${rendererInfo.source})`);
+  // WebRTC-Bootstrap ist optional — auf HF Docker schlägt es oft fehl
+  let rendererInfo = { source: 'cdp-screencast' };
+  try {
+    rendererInfo = await bootstrapRendererTransport(settings);
+    console.log(`✅ Game loaded! WebRTC aktiv: ${rendererInfo.source}`);
+  } catch (webrtcErr) {
+    console.warn('⚠️ WebRTC-Bootstrap fehlgeschlagen (normal in Headless Docker):', webrtcErr.message);
+    console.log('📡 Fallback auf CDP Screencast + Socket.IO Frame-Transport (zuverlässig)');
+    rendererTransportSource = 'cdp-screencast';
+  }
   
   // 🚀 CDP Screencast: Ultra-fast frame capture for 60 FPS
   console.log('🎞️ Starting high-performance CDP Screencast...');

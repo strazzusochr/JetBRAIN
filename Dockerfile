@@ -73,7 +73,7 @@ ENV NODE_OPTIONS="--max-old-space-size=8192"
 ENV PORT=7860
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV STREAM_PROFILE=aaa
+ENV STREAM_PROFILE=low
 ENV HEADLESS_MODE=new
 ENV RENDER_BACKEND=hardware
 
@@ -92,6 +92,6 @@ USER root
 RUN chown -R 1000:1000 /app
 USER 1000
 
-# ☁️ Start Cloud-Gaming-Server (Hardware Accelerated)
-CMD ["node", "server/stream-server.mjs"]
+# ☁️ Start Cloud-Gaming-Server (xvfb für virtuelles Display, Hardware Accelerated)
+CMD ["xvfb-run", "--server-args=-screen 0 1920x1080x24", "node", "server/stream-server.mjs"]
 
