@@ -1396,36 +1396,34 @@ function getClientHTML() {
     let renderWidth = 1920;
     let renderHeight = 1080;
 
-    // 🎞️ Hybrid Transport Fallback: Socket.IO Binary Stream
+    // 🎞️ PRIMARY Transport: Socket.IO Binary Frame Stream
+    // WebRTC funktioniert in HF Docker NICHT — Socket.IO ist der primäre Transport!
     const fallbackCanvas = document.createElement('canvas');
-    fallbackCanvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;display:none;z-index:500;background:#000;';
+    fallbackCanvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;z-index:2500;background:#000;';
     document.body.insertBefore(fallbackCanvas, video);
     const ctx = fallbackCanvas.getContext('2d');
+    let socketFramesActive = false;
 
     socket.on('frame', (data) => {
-      // Use fallback if WebRTC video is not ready or stalled
-      if (video.readyState < 2) {
-        if (fallbackCanvas.style.display === 'none') {
-          fallbackCanvas.style.display = 'block';
-          console.log('🎞️ WebRTC stalled. Loading Socket.IO frame stream...');
+      const blob = new Blob([data], { type: 'image/jpeg' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        fallbackCanvas.width = img.width;
+        fallbackCanvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        frameCount++;
+        
+        // KERNFIX: Loading ausblenden sobald Frames ankommen!
+        if (!socketFramesActive) {
+          socketFramesActive = true;
+          loading.style.display = 'none';
+          video.style.display = 'none'; // WebRTC video nicht nötig
+          console.log('🎥 Socket.IO Frame-Stream aktiv! Black Screen behoben.');
         }
-        const blob = new Blob([data], { type: 'image/jpeg' });
-        const url = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-          fallbackCanvas.width = img.width;
-          fallbackCanvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          URL.revokeObjectURL(url);
-          frameCount++; // Sync with FPS counter
-        };
-        img.src = url;
-      } else {
-        if (fallbackCanvas.style.display === 'block') {
-          fallbackCanvas.style.display = 'none';
-          console.log('⚡ WebRTC active. Disabling fallback.');
-        }
-      }
+      };
+      img.src = url;
     });
     let activeProfile = '${currentProfileKey}';
     let switching = false;
@@ -1611,7 +1609,7 @@ function getClientHTML() {
         }
       };
       peer.onconnectionstatechange = () => {
-        if (['disconnected', 'failed', 'closed'].includes(peer.connectionState)) {
+        if (['disconnected', 'failed', 'closed'].includes(peer.connectionState) && !socketFramesActive) {
           loading.style.display = 'block';
           loading.innerHTML = '<div class="spinner"></div>Reconnecting video stream...';
         }
@@ -1702,8 +1700,10 @@ function getClientHTML() {
 
     socket.on('renderer-stopped', () => {
       closePeer();
-      loading.style.display = 'block';
-      loading.innerHTML = '<div class="spinner"></div>Renderer restarting...';
+      if (!socketFramesActive) {
+        loading.style.display = 'block';
+        loading.innerHTML = '<div class="spinner"></div>Renderer restarting...';
+      }
       remoteHud.dataset.hidden = 'true';
     });
 
@@ -1769,23 +1769,29 @@ function getClientHTML() {
       socket.emit('keyup', { key: e.key, code: e.code });
     });
 
-    // Forward mouse (scaled to stream viewport)
-    video.addEventListener('mousemove', (e) => {
-      const rect = video.getBoundingClientRect();
+    // Forward mouse (scaled to stream viewport) — auf video UND fallbackCanvas
+    function handleMouseMove(e) {
+      const rect = (e.target || video).getBoundingClientRect();
       const x = Math.round((e.clientX - rect.left) / rect.width * renderWidth);
       const y = Math.round((e.clientY - rect.top) / rect.height * renderHeight);
       socket.emit('mousemove', { x, y });
-    });
-    video.addEventListener('mousedown', (e) => {
-      const rect = video.getBoundingClientRect();
+    }
+    function handleMouseDown(e) {
+      const rect = (e.target || video).getBoundingClientRect();
       const x = Math.round((e.clientX - rect.left) / rect.width * renderWidth);
       const y = Math.round((e.clientY - rect.top) / rect.height * renderHeight);
       socket.emit('click', { x, y });
       socket.emit('mousedown', { button: e.button === 0 ? 'left' : 'right' });
-    });
-    video.addEventListener('mouseup', (e) => {
+    }
+    function handleMouseUp(e) {
       socket.emit('mouseup', { button: e.button === 0 ? 'left' : 'right' });
-    });
+    }
+    video.addEventListener('mousemove', handleMouseMove);
+    video.addEventListener('mousedown', handleMouseDown);
+    video.addEventListener('mouseup', handleMouseUp);
+    fallbackCanvas.addEventListener('mousemove', handleMouseMove);
+    fallbackCanvas.addEventListener('mousedown', handleMouseDown);
+    fallbackCanvas.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('contextmenu', (e) => e.preventDefault());
 
     // Reconnect handling

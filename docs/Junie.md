@@ -48,15 +48,15 @@ Erstellung eines voll funktionsfähigen, taktischen 3D-Web-Games mit maximaler G
 
 ## 📝 FORTSCHRITT LOG
 
-### 🚀 PHASE 11: ENDGÜLTIGE CLOUD-STREAM-REPARATUR (2026-03-19, 02:10)
-- [/] **Kernproblem gelöst**: WebRTC funktioniert NICHT in HF Docker. Client empfing keine Frames.
-- [x] **CloudStreamViewer.tsx V3**: Socket.IO JPEG-Frame-Empfang als primärer Transport.
-  - Memory-Leak-Schutz (Blob URL Revocation)
-  - FPS-Zähler für empfangene Frames
-  - Input-Forwarding (Tastatur + Maus)
-- [x] **stream-server.mjs**: WebRTC-Bootstrap in try-catch (optional in Headless).
-  - CDP Screencast läuft immer (unabhängig von WebRTC-Erfolg)
-- [x] **Dockerfile**: `xvfb-run` für virtuelles Display, Safe-Start-Profil (Low → AAA per API)
+### 🚀 PHASE 11: ENDGÜLTIGE CLOUD-STREAM-REPARATUR (2026-03-19, 02:48)
+- [x] **Deep-Dive Durchbruch**: `getClientHTML()` (öffentlicher Viewer) Fehler behoben.
+  - **Fix 1**: `#loading` (z-index 2000) verdeckte `fallbackCanvas` (z-index 500). Jetzt Canvas auf **2500**.
+  - **Fix 2**: `loading.style.display` wird nun bei Socket.IO Frames auf `none` gesetzt.
+  - **Fix 3**: WebRTC Reconnect-Spam blockiert die Anzeige nicht mehr.
+  - **Fix 4**: Mouse-Events auf `fallbackCanvas` umgeleitet (da `video` versteckt ist).
+- [x] **CloudStreamViewer.tsx V3**: Socket.IO Frame-Empfang für die interne React-App optimiert.
+- [x] **stream-server.mjs**: SwiftShader-Flags korrigiert (`--use-gl=swiftshader`).
+- [x] **Dockerfile**: `node:18-slim` + `xvfb-run` (CPU-optimiert für HF Free-Tier).
 - [ ] **10-Minuten Walk-Proof**: AAA-Qualität, 60 FPS, keine Fehler.
 
 ### 🚀 PHASE 10: UNLIMITED AAA PERFORMANCE RECOVERY (2026-03-19, 03:20)
