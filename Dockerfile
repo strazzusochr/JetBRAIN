@@ -5,7 +5,7 @@
 # ══════════════════════════════════════════════════════════════
 
 # ---- Builder: Build Frontend Assets ----
-FROM node:18-slim AS builder
+FROM node:25-slim AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN npm run build
 # HuggingFace Free-Tier hat KEINE GPU — SwiftShader ist der
 # einzige Weg, Three.js in einer CPU-Docker-Umgebung zu rendern.
 # ════════════════════════════════════════════════════════════
-FROM node:18-slim AS runner
+FROM node:25-slim AS runner
 
 # Chromium + X11 Dependencies für Headless Rendering
 RUN apt-get update && apt-get install -y --no-install-recommends \
