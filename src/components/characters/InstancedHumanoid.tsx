@@ -110,8 +110,8 @@ export const InstancedHumanoid = () => {
         
         const isRenderer = new URLSearchParams(window?.location?.search).get('renderer') === 'true';
         frameCounter.current++;
-        // 🚀 Im Cloud-Renderer seltener LOD-Updates für mehr FPS
-        const lodUpdateFrequency = isRenderer ? 15 : 3;
+        // 🚀 Im Cloud-Renderer EXTREM-Update (alle 60 Frames = 1x Sekunde bei 60 FPS Video)
+        const lodUpdateFrequency = isRenderer ? 60 : 3;
         const doLodUpdate = frameCounter.current % lodUpdateFrequency === 0;
         
         const npcs = useGameStore.getState().npcs;

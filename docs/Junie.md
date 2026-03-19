@@ -48,12 +48,13 @@ Erstellung eines voll funktionsfähigen, taktischen 3D-Web-Games mit maximaler G
 
 ## 📝 FORTSCHRITT LOG
 
-### 🚀 PHASE 12.1: 60 FPS NOTFALL-RETTUNG (2026-03-19, 03:25)
-- [!] **Rückschlag**: 1 RENDER FPS auf HF CPU bei 250 NPCs. CPU-Overload verhindert Video-Stream.
-- [ ] **Brutal-LOD**: Erzwingen von LOD 3/4 (Boxen) im Cloud-Renderer für alle NPCs > 5m Distanz.
-- [ ] **Shadow-Kill**: Schatten im Cloud-Modus permanent deaktiviert (0% Schatten-Last).
-- [ ] **Downscale-Turbo**: Internes Rendering auf 360p (DPR 0.4) + CDP Screencast mit 30% Qualität.
-- [ ] **Client-Upscale**: Viewer-CSS für scharfes Upscaling optimieren.
+### 🚀 PHASE 12.2: 60 FPS RESOLUTION-KILL (2026-03-19, 03:35)
+- [!] **Kritischer Status**: 1-2 FPS sind das absolute Limit für 250 NPCs auf dieser CPU.
+- [ ] **320p-Force**: Senkung der Streaming-Auflösung auf 320x180 (Extreme CPU-Entlastung).
+- [ ] **NPC-Freeze**: NPCs im Cloud-Modus nur alle 30-60 Frames updaten (Simulation-Decoupling).
+- [ ] **Video-Garantie**: Qualität auf 10-20% senken, um den Stream-Stall zu beheben.
+- [ ] **Upscale-Viewer**: Client-Viewer skaliert 320p auf Fullscreen (CSS Smoothing).
+
 
 
 

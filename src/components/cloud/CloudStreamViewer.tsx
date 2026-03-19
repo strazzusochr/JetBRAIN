@@ -144,7 +144,10 @@ export const CloudStreamViewer: React.FC = () => {
                     width: '100%',
                     height: '100%',
                     objectFit: 'contain',
-                    display: isLive ? 'block' : 'none'
+                    display: isLive ? 'block' : 'none',
+                    // 🚀 Cloud-Turbo-Smoothing: Macht 180p auf Fullscreen erträglich
+                    imageRendering: 'pixelated',
+                    filter: 'contrast(1.1) brightness(1.05)',
                 }}
                 onMouseMove={(e) => {
                     socketRef.current?.emit('mousemove', { x: e.clientX, y: e.clientY });
