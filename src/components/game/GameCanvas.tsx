@@ -55,6 +55,9 @@ const SceneContent = () => {
         return () => workerManager.stopSimulation();
     }, [isPlaying]);
 
+    const isRenderer = new URLSearchParams(window?.location?.search).get('renderer') === 'true';
+    const shadowRes = isRenderer ? 256 : 1024;
+
     return (
         <>
             <color attach="background" args={[bgColor]} />
@@ -64,14 +67,14 @@ const SceneContent = () => {
                 position={sunPos}
                 intensity={sunIntensity}
                 castShadow={true}
-                shadow-mapSize={[1024, 1024]}
+                shadow-mapSize={[shadowRes, shadowRes]}
                 shadow-camera-left={-100}
                 shadow-camera-right={100}
                 shadow-camera-top={100}
                 shadow-camera-bottom={-100}
                 shadow-camera-near={1}
                 shadow-camera-far={500}
-                shadow-bias={-0.0001}
+                shadow-bias={-0.001}
                 color={sunColor}
             />
             <hemisphereLight
@@ -116,9 +119,13 @@ export const GameCanvas = () => {
         return <CloudStreamViewer />;
     }
 
+    const isRenderer = new URLSearchParams(window?.location?.search).get('renderer') === 'true';
     const streamProfile = useGameStore.getState().streamProfile || 'medium';
     const useShadows = streamProfile === 'aaa' || streamProfile === 'high';
-    const useAntialias = streamProfile !== 'low';
+    const useAntialias = streamProfile !== 'low' && !isRenderer;
+    
+    // 🚀 Performance-Turbo: Cloud-Renderer nutzt niedrigeres DPR für 60 FPS Target
+    const dpr = isRenderer ? 0.75 : (streamProfile === 'aaa' ? 1.25 : window.devicePixelRatio);
 
     return (
         <ErrorBoundary FallbackComponent={({error}: any) => <div style={{color:'red',fontWeight:'bold'}}>Renderer Error: {error?.message || 'Unknown Error'}</div>}>
@@ -131,12 +138,12 @@ export const GameCanvas = () => {
             <Canvas
                 key={renderKey}
                 shadows={useShadows}
-                dpr={streamProfile === 'aaa' ? 1.25 : window.devicePixelRatio}
+                dpr={dpr}
                 gl={{
                     antialias: useAntialias,
                     powerPreference: "high-performance",
-                    precision: "highp",
-                    stencil: true,
+                    precision: isRenderer ? "mediump" : "highp",
+                    stencil: !isRenderer,
                     depth: true,
                     logarithmicDepthBuffer: true,
                     preserveDrawingBuffer: true

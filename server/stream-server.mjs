@@ -613,54 +613,60 @@ io.on('connection', (socket) => {
   });
 });
 
-// ─── Optimized frame capture ───
-async function captureLoop(generation) {
-  if (generation !== captureGeneration) return;
-  if (!page || !isStreaming) return;
-  const settings = getStreamSettings();
+// ─── High-Performance CDP Screencast ───
+let cdpSession = null;
 
-  const startTime = Date.now();
-
+async function setupScreencast() {
+  if (!page) return;
   try {
-    const screenshot = await page.screenshot({
-      type: 'jpeg',
-      quality: settings.jpegQuality,
-      encoding: 'binary',
-      optimizeForSpeed: true
+    cdpSession = await page.target().createCDPSession();
+    
+    // Start screencast at 60fps target
+    await cdpSession.send('Page.startScreencast', {
+      format: 'jpeg',
+      quality: currentProfileKey === 'aaa' ? 60 : 35,
+      maxWidth: 960,
+      maxHeight: 540,
+      everyNthFrame: 1
     });
 
-    // Send via WebSocket (binary, low latency)
-    // Non-volatile to ensure delivery on jittery HF proxy
-    io.to('viewers').emit('frame', screenshot);
+    cdpSession.on('Page.screencastFrame', async ({ data, sessionId, metadata }) => {
+      if (!isStreaming) {
+        await cdpSession.send('Page.screencastFrameAck', { sessionId });
+        return;
+      }
 
-    // MJPEG fallback
-    for (const client of mjpegClients) {
-      try {
-        client.write(`--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${screenshot.length}\r\n\r\n`);
-        client.write(screenshot);
-        client.write('\r\n');
-      } catch (e) { mjpegClients.delete(client); }
-    }
+      const screenshot = Buffer.from(data, 'base64');
+      
+      // Binary broadcast to all viewers
+      io.to('viewers').emit('frame', screenshot);
 
-    // FPS counter
-    frameCount++;
-    const now = Date.now();
-    if (now - lastFpsTime >= 1000) {
-      currentFps = frameCount;
-      frameCount = 0;
-      lastFpsTime = now;
-    }
+      // MJPEG fallback
+      for (const client of mjpegClients) {
+        try {
+          client.write(`--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${screenshot.length}\r\n\r\n`);
+          client.write(screenshot);
+          client.write('\r\n');
+        } catch (e) { mjpegClients.delete(client); }
+      }
+
+      // FPS metrics based on CDP metadata
+      frameCount++;
+      const now = Date.now();
+      if (now - lastFpsTime >= 1000) {
+        currentFps = frameCount;
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+
+      await cdpSession.send('Page.screencastFrameAck', { sessionId });
+    });
+
+    console.log('🚀 CDP Screencast active (60 FPS target)');
   } catch (e) {
-    const message = String(e?.message || e);
-    if (!/Session closed|Target closed/i.test(message)) {
-      console.error('Capture error:', message);
-    }
+    console.error('❌ Failed to setup CDP Screencast:', e);
+    // Silent fallback to nothing or old method if needed
   }
-
-  // Dynamic interval: compensate for capture time
-  const elapsed = Date.now() - startTime;
-  const nextDelay = Math.max(1, settings.frameInterval - elapsed);
-  captureTimeout = setTimeout(() => captureLoop(generation), nextDelay);
 }
 
 async function ensureInternalServer() {
@@ -681,9 +687,13 @@ async function ensureInternalServer() {
 async function stopCloudRenderer() {
   captureGeneration += 1;
   isStreaming = false;
-  if (captureTimeout) {
-    clearTimeout(captureTimeout);
-    captureTimeout = null;
+  
+  if (cdpSession) {
+    try {
+      await cdpSession.send('Page.stopScreencast');
+      await cdpSession.detach();
+    } catch(e) {}
+    cdpSession = null;
   }
 
   if (page) {
@@ -1005,12 +1015,42 @@ async function bootstrapRendererTransport(settings) {
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+    // CDP Screencast will handle frame capture, but we still need to send HUD state
+    function sendHudState() {
+      const hudState = buildHudState();
+      if (hudState) {
+        const serialized = JSON.stringify(hudState);
+        if (serialized !== lastHudSerialized) {
+          socket.emit('hud-state', hudState);
+          lastHudSerialized = serialized;
+        }
+      }
+    }
+
+    // Send HUD state periodically (e.g., every 100ms)
+    setInterval(sendHudState, 100);
+
+    // This function will be called by the Puppeteer host to initiate CDP screencast
+    // It's a placeholder for the host to hook into.
+    async function setupScreencast() {
+      // The actual CDP screencast is initiated by the Puppeteer host.
+      // This function serves as a signal that the renderer is ready for it.
+      console.log('Renderer ready for CDP Screencast.');
+      // We can also send initial stats here if needed
+      socket.emit('renderer-stats', {
+        fps: 0, // FPS will be reported by the host
+        width: tabStream ? window.innerWidth : canvas.width,
+        height: tabStream ? window.innerHeight : canvas.height,
+      });
+      return true;
+    }
 
     window.__rendererTransport = { socket, peers, stream };
     return {
       source: transportSource,
       width: tabStream ? window.innerWidth : canvas.width,
       height: tabStream ? window.innerHeight : canvas.height,
+      setupScreencast, // Expose setupScreencast to the host
     };
   }, { publicOrigin, fps: settings.fps });
 

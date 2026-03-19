@@ -108,8 +108,11 @@ export const InstancedHumanoid = () => {
     useFrame(({ camera }) => {
         if (refs.some(r => !r.current) || !auraRef.current) return;
         
+        const isRenderer = new URLSearchParams(window?.location?.search).get('renderer') === 'true';
         frameCounter.current++;
-        const doLodUpdate = frameCounter.current % 3 === 0;
+        // 🚀 Im Cloud-Renderer seltener LOD-Updates für mehr FPS
+        const lodUpdateFrequency = isRenderer ? 15 : 3;
+        const doLodUpdate = frameCounter.current % lodUpdateFrequency === 0;
         
         const npcs = useGameStore.getState().npcs;
         const buffer = workerManager.latestNPCBuffer;
@@ -187,13 +190,15 @@ export const InstancedHumanoid = () => {
         if (auraRef.current.instanceColor) auraRef.current.instanceColor.needsUpdate = true;
     });
 
+    const isRenderer = new URLSearchParams(window?.location?.search).get('renderer') === 'true';
+
     return (
         <>
-            <instancedMesh ref={lod0Ref} args={[geos[0], baseMat, MAX]} castShadow receiveShadow />
-            <instancedMesh ref={lod1Ref} args={[geos[1], baseMat, MAX]} castShadow receiveShadow />
-            <instancedMesh ref={lod2Ref} args={[geos[2], baseMat, MAX]} receiveShadow />
-            <instancedMesh ref={lod3Ref} args={[geos[3], baseMat, MAX]} receiveShadow />
-            <instancedMesh ref={lod4Ref} args={[geos[4], baseMat, MAX]} receiveShadow />
+            <instancedMesh ref={lod0Ref} args={[geos[0], baseMat, MAX]} castShadow={!isRenderer} receiveShadow={!isRenderer} />
+            <instancedMesh ref={lod1Ref} args={[geos[1], baseMat, MAX]} castShadow={!isRenderer} receiveShadow={!isRenderer} />
+            <instancedMesh ref={lod2Ref} args={[geos[2], baseMat, MAX]} receiveShadow={!isRenderer} />
+            <instancedMesh ref={lod3Ref} args={[geos[3], baseMat, MAX]} receiveShadow={!isRenderer} />
+            <instancedMesh ref={lod4Ref} args={[geos[4], baseMat, MAX]} receiveShadow={!isRenderer} />
             <instancedMesh ref={auraRef} args={[auraGeo, auraMat, MAX]} />
         </>
     );
